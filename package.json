@@ -1,0 +1,36 @@
+{
+  "name": "parrotube",
+  "version": "0.1.0",
+  "description": "YouTube Analytics CLI for AI agents and humans. Pull channel demographics, geography, traffic sources, device stats, and more.",
+  "type": "module",
+  "bin": {
+    "parrotube": "./src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "keywords": [
+    "youtube",
+    "analytics",
+    "cli",
+    "youtube-analytics",
+    "ai-agent",
+    "devbrothers",
+    "parrot"
+  ],
+  "author": "DevBrothers",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devbrothers/parrotube.git"
+  },
+  "dependencies": {
+    "googleapis": "^144.0.0",
+    "commander": "^13.0.0",
+    "open": "^10.0.0",
+    "cli-table3": "^0.6.0"
+  }
+}
