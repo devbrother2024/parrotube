@@ -25,7 +25,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
 
       - run: npm install
       - run: npm run build
@@ -34,7 +33,7 @@ jobs:
         id: version
         run: |
           LOCAL=$(node -p "require('./package.json').version")
-          REMOTE=$(npm view parrotube version 2>/dev/null || echo "0.0.0")
+          REMOTE=$(npm view parrotube version --registry https://registry.npmjs.org 2>/dev/null || echo "0.0.0")
           echo "local=$LOCAL" >> $GITHUB_OUTPUT
           echo "remote=$REMOTE" >> $GITHUB_OUTPUT
           if [ "$LOCAL" != "$REMOTE" ]; then
@@ -45,4 +44,4 @@ jobs:
 
       - name: Publish
         if: steps.version.outputs.changed == 'true'
-        run: npm publish --provenance
+        run: npm publish --provenance --access public --registry https://registry.npmjs.org
