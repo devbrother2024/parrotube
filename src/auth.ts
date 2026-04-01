@@ -93,6 +93,7 @@ function listenForCode(port: number): Promise<string> {
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end('<h1>Authentication successful!</h1><p>You can close this tab.</p>');
         server.close();
+        server.closeAllConnections();
         resolve(code);
       } else {
         res.writeHead(400);
