@@ -1,6 +1,6 @@
 # parrotube
 
-YouTube Analytics CLI for AI agents and humans. Pull channel demographics, geography, traffic sources, device stats, and more.
+YouTube Analytics CLI for AI agents and humans. Pull channel demographics, geography, traffic sources, device stats, revenue, time-series, search terms, and more — or run arbitrary API queries.
 
 **Works with:** Claude Code, Cursor, and any agent that can run shell commands.
 
@@ -89,9 +89,59 @@ Top N videos by watch time.
 parrotube top-videos --period 28d --max 10
 ```
 
+### time-series
+
+Daily or monthly time-series data.
+
+```bash
+parrotube time-series --period 90d
+parrotube time-series --period 1y --by month
+```
+
+### revenue
+
+Revenue and ad performance metrics (CPM, ad impressions, monetized playbacks, etc.).
+
+```bash
+parrotube revenue --period 28d
+```
+
+### search-terms
+
+Top search terms driving traffic from YouTube Search.
+
+```bash
+parrotube search-terms --period 28d --max 25
+```
+
+### sharing
+
+Sharing service breakdown (WhatsApp, Twitter, LINE, etc.).
+
+```bash
+parrotube sharing --period 28d
+```
+
+### video
+
+Stats for a specific video.
+
+```bash
+parrotube video --video-id dQw4w9WgXcQ --period 90d
+```
+
+### query
+
+Raw API query — specify your own metrics, dimensions, sort, and filters.
+
+```bash
+parrotube query --metrics views,likes --dimensions country --sort -views --period 28d
+parrotube query --metrics estimatedMinutesWatched --filters "video==abc123" --period 7d
+```
+
 ### report
 
-**Full report** -- runs all of the above and outputs a single combined JSON.
+**Full report** -- runs overview, demographics, geography, traffic, devices, and top-videos, then outputs a single combined JSON.
 
 ```bash
 parrotube report --period 28d
@@ -111,8 +161,13 @@ parrotube report --period 28d
 Every command writes structured JSON to stdout. Errors go to stderr as `{"error": "..."}`.
 
 ```bash
-# Agent usage example
+# Full channel snapshot
 npx parrotube report --period 28d
+
+# Composable primitives — agents can mix & match
+npx parrotube time-series --period 90d --by day --format json
+npx parrotube query --metrics views,estimatedRevenue --dimensions country --sort -views
+npx parrotube video --video-id VIDEO_ID --period 28d
 ```
 
 ## License
