@@ -3,7 +3,7 @@
 ## Project Context & Operations
 
 ### Overview
-YouTube Analytics API를 래핑하는 CLI 도구. AI 에이전트와 사람 모두가 채널 통계(인구통계, 지역, 트래픽, 기기, 인기영상)를 JSON/Table로 조회한다.
+YouTube Analytics API를 래핑하는 CLI 도구. AI 에이전트와 사람 모두가 채널 통계(인구통계, 지역, 트래픽, 기기, 인기영상, 시계열, 수익, 검색어, 공유, 개별영상)를 JSON/Table로 조회한다. 범용 query 커맨드로 임의 API 쿼리도 지원한다.
 
 ### Tech Stack
 - Runtime: Bun (개발/테스트) / Node.js >= 18 (배포)
@@ -100,4 +100,4 @@ output(result, options.format); // json 또는 table
 
 ## Context Map
 
-- **[서브커맨드 추가/수정](./src/commands/AGENTS.md)** -- 7개 분석 커맨드의 metrics/dimensions 매핑 및 구현 패턴
+- **[서브커맨드 추가/수정](./src/commands/AGENTS.md)** -- 13개 분석 커맨드의 metrics/dimensions 매핑 및 구현 패턴
