@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { authenticate, getAuthClient } from './auth.js';
 import { resolveDates } from './utils/date.js';
@@ -94,7 +96,17 @@ async function main(): Promise<void> {
   }
 }
 
-const isDirectRun = process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js');
-if (isDirectRun) {
+function isEntrypoint(): boolean {
+  const arg = process.argv[1];
+  if (!arg) return false;
+  const self = fileURLToPath(import.meta.url);
+  try {
+    return fs.realpathSync(arg) === fs.realpathSync(self);
+  } catch {
+    return false;
+  }
+}
+
+if (isEntrypoint()) {
   main();
 }
