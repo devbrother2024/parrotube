@@ -54,13 +54,12 @@ export async function authenticate(): Promise<void> {
     scope: SCOPES,
   });
 
-  const code = await listenForCode(3210);
+  const codePromise = listenForCode(3210);
   process.stderr.write('Waiting for authorization...\n');
-
   await open(authorizeUrl);
-  const actualCode = await code;
 
-  const { tokens } = await oauth2.getToken(actualCode);
+  const code = await codePromise;
+  const { tokens } = await oauth2.getToken(code);
   saveToken(tokens as Record<string, unknown>);
   process.stderr.write('Authentication successful. Token saved.\n');
 }
