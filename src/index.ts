@@ -25,7 +25,7 @@ export function createProgram(): Command {
   program
     .name('parrotube')
     .description('YouTube Analytics CLI for AI agents and humans')
-    .version('0.1.0')
+    .version('0.2.0')
     .option('-p, --period <value>', 'Shorthand period: 7d, 28d, 90d, 1y', '28d')
     .option('--start-date <YYYY-MM-DD>', 'Custom start date')
     .option('--end-date <YYYY-MM-DD>', 'Custom end date')
