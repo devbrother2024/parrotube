@@ -33,7 +33,7 @@ describe('CLI program', () => {
     expect(help).toContain('--format');
   });
 
-  test('서브커맨드 8개 등록 (auth + 6개 분석 + report)', async () => {
+  test('서브커맨드 14개 등록 (auth + 12개 분석 + report)', async () => {
     const { createProgram } = await import('./index');
     const program = createProgram();
 
@@ -46,5 +46,11 @@ describe('CLI program', () => {
     expect(commandNames).toContain('devices');
     expect(commandNames).toContain('top-videos');
     expect(commandNames).toContain('report');
+    expect(commandNames).toContain('time-series');
+    expect(commandNames).toContain('revenue');
+    expect(commandNames).toContain('search-terms');
+    expect(commandNames).toContain('sharing');
+    expect(commandNames).toContain('video');
+    expect(commandNames).toContain('query');
   });
 });

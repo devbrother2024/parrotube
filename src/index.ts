@@ -12,6 +12,12 @@ import { trafficAction } from './commands/traffic.js';
 import { devicesAction } from './commands/devices.js';
 import { topVideosAction } from './commands/top-videos.js';
 import { reportAction } from './commands/report.js';
+import { timeSeriesAction } from './commands/time-series.js';
+import { revenueAction } from './commands/revenue.js';
+import { searchTermsAction } from './commands/search-terms.js';
+import { sharingAction } from './commands/sharing.js';
+import { videoAction } from './commands/video.js';
+import { queryAction } from './commands/query.js';
 
 export function createProgram(): Command {
   const program = new Command();
@@ -38,6 +44,8 @@ export function createProgram(): Command {
     { name: 'geography', desc: 'Country-level viewing data', action: geographyAction },
     { name: 'traffic', desc: 'Traffic source breakdown', action: trafficAction },
     { name: 'devices', desc: 'Device type and OS breakdown', action: devicesAction },
+    { name: 'revenue', desc: 'Revenue and ad performance metrics', action: revenueAction },
+    { name: 'sharing', desc: 'Sharing service breakdown', action: sharingAction },
   ];
 
   for (const cmd of analyticsCommands) {
@@ -79,6 +87,76 @@ export function createProgram(): Command {
         ...dates,
         format: opts.format,
         max: parseInt(cmdOpts.max, 10),
+      });
+    });
+
+  program
+    .command('time-series')
+    .description('Daily or monthly time-series data')
+    .option('--by <unit>', 'Group by: day or month', 'day')
+    .action(async (cmdOpts) => {
+      const opts = program.opts();
+      const dates = resolveDates(opts);
+      const auth = await getAuthClient();
+      await timeSeriesAction(auth, {
+        ...dates,
+        format: opts.format,
+        by: cmdOpts.by,
+      });
+    });
+
+  program
+    .command('search-terms')
+    .description('Top search terms driving traffic')
+    .option('-m, --max <number>', 'Max number of search terms', '25')
+    .action(async (cmdOpts) => {
+      const opts = program.opts();
+      const dates = resolveDates(opts);
+      const auth = await getAuthClient();
+      await searchTermsAction(auth, {
+        ...dates,
+        format: opts.format,
+        max: parseInt(cmdOpts.max, 10),
+      });
+    });
+
+  program
+    .command('video')
+    .description('Stats for a specific video')
+    .requiredOption('--video-id <id>', 'YouTube video ID')
+    .action(async (cmdOpts) => {
+      const opts = program.opts();
+      const dates = resolveDates(opts);
+      const auth = await getAuthClient();
+      await videoAction(auth, {
+        ...dates,
+        format: opts.format,
+        videoId: cmdOpts.videoId,
+      });
+    });
+
+  program
+    .command('query')
+    .description('Raw API query with custom metrics/dimensions')
+    .requiredOption('--metrics <metrics>', 'Comma-separated metrics')
+    .option('--dimensions <dims>', 'Comma-separated dimensions')
+    .option('--sort <sort>', 'Sort field (prefix - for descending)')
+    .option('--filters <filters>', 'Filter expression')
+    .option('--max-results <number>', 'Max number of results')
+    .action(async (cmdOpts) => {
+      const opts = program.opts();
+      const dates = resolveDates(opts);
+      const auth = await getAuthClient();
+      await queryAction(auth, {
+        ...dates,
+        format: opts.format,
+        metrics: cmdOpts.metrics,
+        dimensions: cmdOpts.dimensions,
+        sort: cmdOpts.sort,
+        filters: cmdOpts.filters,
+        maxResults: cmdOpts.maxResults
+          ? parseInt(cmdOpts.maxResults, 10)
+          : undefined,
       });
     });
 
