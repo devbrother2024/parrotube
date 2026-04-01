@@ -4,13 +4,17 @@
   "description": "YouTube Analytics CLI for AI agents and humans. Pull channel demographics, geography, traffic sources, device stats, and more.",
   "type": "module",
   "bin": {
-    "parrotube": "./src/index.js"
+    "parrotube": "./dist/index.js"
   },
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "start": "node src/index.js"
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "bun run src/index.ts",
+    "test": "bun test",
+    "test:watch": "bun test --watch"
   },
   "keywords": [
     "youtube",
@@ -25,12 +29,17 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/devbrothers/parrotube.git"
+    "url": "git+https://github.com/devbrother2024/parrotube.git"
   },
   "dependencies": {
-    "googleapis": "^144.0.0",
+    "cli-table3": "^0.6.0",
     "commander": "^13.0.0",
-    "open": "^10.0.0",
-    "cli-table3": "^0.6.0"
+    "googleapis": "^144.0.0",
+    "open": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.5.0",
+    "typescript": "^6.0.2"
   }
 }
