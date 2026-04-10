@@ -29,6 +29,16 @@ mv ~/Downloads/client_secret*.json ~/.config/parrotube/client_secret.json
 npx parrotube auth
 ```
 
+## Authentication Requirements
+
+| Category | Commands | Auth Required |
+|----------|----------|:---:|
+| **Analytics** | overview, demographics, geography, traffic, devices, revenue, sharing, top-videos, time-series, search-terms, video, query, report | Yes |
+| **Data API** | data:comments, data:channel, data:videos, data:playlists, data:playlist-items, data:search, data:subscriptions, data:activities, data:captions, data:categories, data:i18n | Yes |
+| **No Auth** | data:transcript | **No** |
+
+`data:transcript` uses YouTube's innertube API and works without any authentication. All other commands require OAuth2 setup (see [Setup](#setup-one-time)).
+
 ## Commands
 
 All commands output JSON by default. Use `--format table` for human-readable output.
@@ -229,9 +239,9 @@ List captions for a video.
 parrotube data:captions --video-id dQw4w9WgXcQ
 ```
 
-### data:transcript
+### data:transcript (no auth required)
 
-Extract transcript (subtitles/captions text) from any public video, including auto-generated captions. Does not require video ownership — works with any public video.
+Extract transcript (subtitles/captions text) from any public video, including auto-generated captions. **No authentication required** — works without OAuth setup.
 
 ```bash
 # JSON output with timestamps

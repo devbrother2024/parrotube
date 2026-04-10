@@ -22,11 +22,11 @@ describe('dataTranscriptAction', () => {
     mockFetchTranscript.mockClear();
   });
 
-  test('videoId를 전달하여 fetchTranscript을 호출한다', async () => {
+  test('auth 없이 videoId를 전달하여 fetchTranscript을 호출한다', async () => {
     consoleSpy = spyOn(console, 'log').mockImplementation(() => {});
     const { dataTranscriptAction } = await import('./data-transcript');
 
-    await dataTranscriptAction({} as never, {
+    await dataTranscriptAction({
       format: 'json',
       videoId: 'vid-123',
     });
@@ -38,7 +38,7 @@ describe('dataTranscriptAction', () => {
     consoleSpy = spyOn(console, 'log').mockImplementation(() => {});
     const { dataTranscriptAction } = await import('./data-transcript');
 
-    await dataTranscriptAction({} as never, {
+    await dataTranscriptAction({
       format: 'json',
       videoId: 'vid-123',
       lang: 'en',
@@ -51,7 +51,7 @@ describe('dataTranscriptAction', () => {
     consoleSpy = spyOn(console, 'log').mockImplementation(() => {});
     const { dataTranscriptAction } = await import('./data-transcript');
 
-    await dataTranscriptAction({} as never, {
+    await dataTranscriptAction({
       format: 'json',
       videoId: 'vid-123',
     });
@@ -67,7 +67,7 @@ describe('dataTranscriptAction', () => {
     consoleSpy = spyOn(console, 'log').mockImplementation(() => {});
     const { dataTranscriptAction } = await import('./data-transcript');
 
-    await dataTranscriptAction({} as never, {
+    await dataTranscriptAction({
       format: 'text',
       videoId: 'vid-123',
     });
