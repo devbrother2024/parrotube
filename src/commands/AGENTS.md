@@ -161,6 +161,7 @@ describe('xxxAction', () => {
 
 ### Do's
 - 새 커맨드 추가 시 위 Subcommand Spec에 매핑 정보를 먼저 기록한다
+- 새 커맨드 추가 시 README.md의 Commands 섹션, Authentication Requirements 테이블, --help description을 함께 업데이트한다
 - `ActionOptions` 인터페이스를 커맨드 간 일관되게 유지한다
 - `report.ts`에 새 커맨드 추가 시 통합 JSON 키도 함께 추가한다
 
