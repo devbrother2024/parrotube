@@ -24,6 +24,14 @@ jobs:
             echo "Changed command files:"
             echo "$CMD_CHANGED"
           fi
+      - name: Check version bump
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          SRC_CHANGED=$(echo "$CHANGED" | grep -E '^src/' || true)
+          VER_CHANGED=$(echo "$CHANGED" | grep '^package.json' || true)
+          if [ -n "$SRC_CHANGED" ] && [ -z "$VER_CHANGED" ]; then
+            echo "::warning::Source files changed but package.json version was not updated. Remember to bump the version for npm publish."
+          fi
 
   publish:
     needs: test

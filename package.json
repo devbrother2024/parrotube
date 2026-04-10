@@ -1,6 +1,6 @@
 {
   "name": "parrotube",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "YouTube Analytics CLI for AI agents and humans. Pull channel demographics, geography, traffic sources, device stats, and more.",
   "type": "module",
   "bin": {
