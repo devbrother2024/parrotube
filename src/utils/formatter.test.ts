@@ -46,6 +46,25 @@ describe('output', () => {
     output({}, 'table');
     expect(stdoutSpy).toHaveBeenCalled();
   });
+
+  test('table 포맷: Data API items[] 응답 자동 감지', () => {
+    const data = {
+      items: [
+        { id: 'video-1', snippet: { title: '테스트' }, statistics: { viewCount: '1000' } },
+        { id: 'video-2', snippet: { title: '영상2' }, statistics: { viewCount: '500' } },
+      ],
+    };
+    output(data, 'table');
+    const printed = stdoutSpy.mock.calls[0][0] as string;
+    expect(printed).toContain('id');
+    expect(printed).toContain('video-1');
+    expect(printed).toContain('video-2');
+  });
+
+  test('table 포맷: Data API items[]가 비어있으면 빈 테이블', () => {
+    output({ items: [] }, 'table');
+    expect(stdoutSpy).toHaveBeenCalled();
+  });
 });
 
 describe('formatReport', () => {

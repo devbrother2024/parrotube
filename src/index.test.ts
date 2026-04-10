@@ -1,4 +1,4 @@
-import { describe, expect, test, mock, spyOn, afterEach } from 'bun:test';
+import { describe, expect, test, mock } from 'bun:test';
 
 mock.module('googleapis', () => ({
   google: {
@@ -33,11 +33,12 @@ describe('CLI program', () => {
     expect(help).toContain('--format');
   });
 
-  test('서브커맨드 14개 등록 (auth + 12개 분석 + report)', async () => {
+  test('서브커맨드 25개 등록 (analytics + data api)', async () => {
     const { createProgram } = await import('./index');
     const program = createProgram();
 
     const commandNames = program.commands.map((c) => c.name());
+    expect(commandNames).toHaveLength(25);
     expect(commandNames).toContain('auth');
     expect(commandNames).toContain('overview');
     expect(commandNames).toContain('demographics');
@@ -52,5 +53,16 @@ describe('CLI program', () => {
     expect(commandNames).toContain('sharing');
     expect(commandNames).toContain('video');
     expect(commandNames).toContain('query');
+    expect(commandNames).toContain('data:comments');
+    expect(commandNames).toContain('data:channel');
+    expect(commandNames).toContain('data:videos');
+    expect(commandNames).toContain('data:playlists');
+    expect(commandNames).toContain('data:playlist-items');
+    expect(commandNames).toContain('data:search');
+    expect(commandNames).toContain('data:subscriptions');
+    expect(commandNames).toContain('data:activities');
+    expect(commandNames).toContain('data:captions');
+    expect(commandNames).toContain('data:categories');
+    expect(commandNames).toContain('data:i18n');
   });
 });
