@@ -9,9 +9,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - uses: oven-sh/setup-bun@v2
       - run: bun install
       - run: bun test
+      - name: Check README sync
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          CMD_CHANGED=$(echo "$CHANGED" | grep -E '^src/(commands/|index\.ts)' || true)
+          README_CHANGED=$(echo "$CHANGED" | grep '^README.md' || true)
+          if [ -n "$CMD_CHANGED" ] && [ -z "$README_CHANGED" ]; then
+            echo "::warning::Command files changed but README.md was not updated. Please verify README is in sync."
+            echo "Changed command files:"
+            echo "$CMD_CHANGED"
+          fi
 
   publish:
     needs: test
