@@ -27,6 +27,7 @@ import { dataSearchAction } from './commands/data-search.js';
 import { dataSubscriptionsAction } from './commands/data-subscriptions.js';
 import { dataActivitiesAction } from './commands/data-activities.js';
 import { dataCaptionsAction } from './commands/data-captions.js';
+import { dataTranscriptAction } from './commands/data-transcript.js';
 import { dataCategoriesAction } from './commands/data-categories.js';
 import { dataI18nAction } from './commands/data-i18n.js';
 
@@ -303,6 +304,21 @@ export function createProgram(): Command {
       await dataCaptionsAction(auth, {
         format: opts.format,
         videoId: cmdOpts.videoId,
+      });
+    });
+
+  program
+    .command('data:transcript')
+    .description('Extract transcript (subtitles/captions text) from a video')
+    .requiredOption('--video-id <id>', 'YouTube video ID')
+    .option('--lang <code>', 'Language code (e.g. ko, en)')
+    .action(async (cmdOpts) => {
+      const opts = program.opts();
+      const auth = await getAuthClient();
+      await dataTranscriptAction(auth, {
+        format: opts.format,
+        videoId: cmdOpts.videoId,
+        lang: cmdOpts.lang,
       });
     });
 
