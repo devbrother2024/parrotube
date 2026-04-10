@@ -229,6 +229,21 @@ List captions for a video.
 parrotube data:captions --video-id dQw4w9WgXcQ
 ```
 
+### data:transcript
+
+Extract transcript (subtitles/captions text) from any public video, including auto-generated captions. Does not require video ownership — works with any public video.
+
+```bash
+# JSON output with timestamps
+parrotube data:transcript --video-id dQw4w9WgXcQ
+
+# Specific language
+parrotube data:transcript --video-id dQw4w9WgXcQ --lang ko
+
+# Plain text only (no timestamps)
+parrotube data:transcript --video-id dQw4w9WgXcQ --format text
+```
+
 ### data:categories
 
 Fetch video categories for a region.
