@@ -1,6 +1,6 @@
 # parrotube
 
-YouTube Analytics CLI for AI agents and humans. Pull channel demographics, geography, traffic sources, device stats, revenue, time-series, search terms, and more — or run arbitrary API queries.
+YouTube Analytics CLI for AI agents and humans. Pull channel demographics, geography, traffic sources, device stats, revenue, time-series, search terms, and more, or query YouTube Data API resources from the same CLI.
 
 **Works with:** Claude Code, Cursor, and any agent that can run shell commands.
 
@@ -19,7 +19,7 @@ npx parrotube --help
 ## Setup (one-time)
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a project and enable **YouTube Analytics API** + **YouTube Data API v3**
+2. Create a project and enable **YouTube Analytics API** and **YouTube Data API v3**
 3. Create an **OAuth 2.0 Client ID** (Desktop App type)
 4. Download `client_secret.json`
 
@@ -147,6 +147,106 @@ parrotube query --metrics estimatedMinutesWatched --filters "video==abc123" --pe
 parrotube report --period 28d
 ```
 
+## YouTube Data API Commands
+
+These commands use YouTube Data API v3 and do not require `--period`.
+
+### data:comments
+
+Fetch comment threads for a video.
+
+```bash
+parrotube data:comments --video-id dQw4w9WgXcQ --max 50
+parrotube data:comments --video-id dQw4w9WgXcQ --all --order relevance
+```
+
+### data:channel
+
+Fetch channel info for the authenticated channel or a specific channel ID.
+
+```bash
+parrotube data:channel
+parrotube data:channel --channel-id UC_x5XG1OV2P6uZZ5FSM9Ttw
+```
+
+### data:videos
+
+Fetch metadata for one or more videos.
+
+```bash
+parrotube data:videos --video-id dQw4w9WgXcQ
+parrotube data:videos --video-id dQw4w9WgXcQ,9bZkp7q19f0
+```
+
+### data:playlists
+
+List playlists for the authenticated channel or a specific channel.
+
+```bash
+parrotube data:playlists
+parrotube data:playlists --channel-id UC_x5XG1OV2P6uZZ5FSM9Ttw --max 10
+```
+
+### data:playlist-items
+
+List videos inside a playlist.
+
+```bash
+parrotube data:playlist-items --playlist-id PL590L5WQmH8fJ54F5Kxv7xQ3RjQ4Xr8vL --max 20
+```
+
+### data:search
+
+Search videos, channels, or playlists.
+
+```bash
+parrotube data:search --query "agentic engineering" --type video --max 10
+parrotube data:search --query "devbrothers" --type channel
+```
+
+### data:subscriptions
+
+List the authenticated channel's subscriptions.
+
+```bash
+parrotube data:subscriptions --max 25
+```
+
+### data:activities
+
+Fetch channel activity feed.
+
+```bash
+parrotube data:activities --max 20
+parrotube data:activities --channel-id UC_x5XG1OV2P6uZZ5FSM9Ttw
+```
+
+### data:captions
+
+List captions for a video.
+
+```bash
+parrotube data:captions --video-id dQw4w9WgXcQ
+```
+
+### data:categories
+
+Fetch video categories for a region.
+
+```bash
+parrotube data:categories
+parrotube data:categories --region-code US
+```
+
+### data:i18n
+
+List supported i18n regions or languages.
+
+```bash
+parrotube data:i18n --type regions
+parrotube data:i18n --type languages
+```
+
 ## Common Options
 
 | Option | Description | Default |
@@ -168,6 +268,8 @@ npx parrotube report --period 28d
 npx parrotube time-series --period 90d --by day --format json
 npx parrotube query --metrics views,estimatedRevenue --dimensions country --sort -views
 npx parrotube video --video-id VIDEO_ID --period 28d
+npx parrotube data:videos --video-id VIDEO_ID --format json
+npx parrotube data:comments --video-id VIDEO_ID --max 100 --format json
 ```
 
 ## License
