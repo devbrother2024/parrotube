@@ -108,7 +108,8 @@ output(result, options.format); // json 또는 table
 
 **워크플로 필수 요건:**
 - `permissions: id-token: write` 필수 (OIDC 토큰 발급용)
-- npm **11.5.1 이상** 필수 (Trusted Publisher는 이 버전부터 지원) -- Node 22 기본 npm은 10.x이므로 `npm install -g npm@latest`로 업그레이드 필요
+- npm **11.5.1 이상** 필수 (Trusted Publisher는 이 버전부터 지원) -- **Node 24 사용으로 해결** (Node 22 기본 npm은 10.x, Node 24는 기본 npm 11.x)
+- `npm install -g npm@latest`로 self-upgrade는 `MODULE_NOT_FOUND` 에러가 발생하므로 사용 금지. Node 버전으로 해결한다
 - `NODE_AUTH_TOKEN` 환경변수를 **설정하지 않는다** (토큰이 disallow되어 있어 404 에러 발생)
 
 **주의 사항 (과거 트러블슈팅 기록):**
