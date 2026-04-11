@@ -97,6 +97,26 @@ import { output } from '../utils/formatter.js';
 output(result, options.format); // json 또는 table
 ```
 
+### Deployment (npm publish)
+
+배포는 `.github/workflows/publish.yml`에서 `main` 브랜치 푸시 시 자동 실행된다.
+
+**인증 방식: npm Trusted Publisher (OIDC)**
+- npm 패키지 설정이 `Require 2FA and disallow tokens`로 되어 있어 **토큰 기반 publish는 불가능**하다
+- npmjs.com의 패키지 Settings > Trusted Publisher에 이 레포(`devbrother2024/parrotube`)와 워크플로(`publish.yml`)가 등록되어 있다
+- GitHub Actions의 OIDC 토큰을 사용하여 npm에 인증한다
+
+**워크플로 필수 요건:**
+- `permissions: id-token: write` 필수 (OIDC 토큰 발급용)
+- npm **11.5.1 이상** 필수 (Trusted Publisher는 이 버전부터 지원) -- Node 22 기본 npm은 10.x이므로 `npm install -g npm@latest`로 업그레이드 필요
+- `NODE_AUTH_TOKEN` 환경변수를 **설정하지 않는다** (토큰이 disallow되어 있어 404 에러 발생)
+
+**주의 사항 (과거 트러블슈팅 기록):**
+- `npm publish` 시 `404 Not Found - PUT https://registry.npmjs.org/parrotube` 에러가 나면 OIDC fallback 실패를 의심한다
+- provenance 서명은 성공하는데 PUT만 실패하는 패턴이 특징
+- `actions/setup-node`의 `registry-url` 옵션은 유지하되, secrets에 토큰을 넣어두면 오히려 방해가 된다
+- `package.json` + `src/index.ts`의 version이 npmjs.com의 최신 버전과 다를 때만 publish 스텝이 실행된다
+
 ### Maintenance Policy
 규칙과 실제 코드 사이에 괴리가 발생하면 이 파일의 업데이트를 제안하라.
 
