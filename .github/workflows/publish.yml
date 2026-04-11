@@ -64,6 +64,18 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Debug npm auth
+        run: |
+          echo "=== npm whoami ==="
+          npm whoami || echo "npm whoami failed - token may be invalid"
+          echo "=== npm view parrotube ==="
+          npm view parrotube versions --json || echo "npm view failed"
+          echo "=== npm config (registry + userconfig path) ==="
+          npm config get registry
+          npm config get userconfig
+          echo "=== .npmrc content (auth masked) ==="
+          cat "$NPM_CONFIG_USERCONFIG" 2>/dev/null | sed 's/_authToken=.*/_authToken=***MASKED***/' || echo ".npmrc not found"
+
       - name: Publish
         if: steps.version.outputs.changed == 'true'
         run: npm publish --provenance --access public
