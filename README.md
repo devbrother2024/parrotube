@@ -4,6 +4,11 @@ YouTube Analytics CLI for AI agents and humans. Pull channel demographics, geogr
 
 **Works with:** Claude Code, Cursor, and any agent that can run shell commands.
 
+## Prerequisites
+
+- **Node.js** >= 18
+- **yt-dlp** — required for `data:transcript` command. [Install guide](https://github.com/yt-dlp/yt-dlp#installation)
+
 ## Installation
 
 ```bash
@@ -37,7 +42,7 @@ npx parrotube auth
 | **Data API** | data:comments, data:channel, data:videos, data:playlists, data:playlist-items, data:search, data:subscriptions, data:activities, data:captions, data:categories, data:i18n | Yes |
 | **No Auth** | data:transcript | **No** |
 
-`data:transcript` uses YouTube's innertube API and works without any authentication. All other commands require OAuth2 setup (see [Setup](#setup-one-time)).
+`data:transcript` uses [yt-dlp](https://github.com/yt-dlp/yt-dlp) to fetch subtitles and works without any authentication. All other commands require OAuth2 setup (see [Setup](#setup-one-time)).
 
 ## Commands
 

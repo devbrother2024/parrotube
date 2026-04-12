@@ -1,3 +1,18 @@
+import { execFile } from 'node:child_process';
+
+function execFileAsync(
+  cmd: string,
+  args: string[],
+  opts: { timeout?: number; maxBuffer?: number },
+): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    execFile(cmd, args, opts, (err, stdout, stderr) => {
+      if (err) return reject(err);
+      resolve({ stdout, stderr });
+    });
+  });
+}
+
 export interface TranscriptSegment {
   text: string;
   start: number;
@@ -18,41 +33,94 @@ export interface TranscriptResult {
   segments: TranscriptSegment[];
 }
 
-interface InnertubePlayerResponse {
-  captions?: {
-    playerCaptionsTracklistRenderer?: {
-      captionTracks?: InnertubeTrack[];
-    };
-  };
+interface Json3Event {
+  tStartMs?: number;
+  dDurationMs?: number;
+  segs?: Array<{ utf8?: string }>;
 }
 
-interface InnertubeTrack {
-  baseUrl: string;
-  name: { simpleText: string };
-  languageCode: string;
-  kind?: string;
+interface Json3Response {
+  events?: Json3Event[];
 }
 
-const INNERTUBE_URL = 'https://www.youtube.com/youtubei/v1/player';
+interface SubtitleFormat {
+  ext: string;
+  url: string;
+}
 
-const INNERTUBE_CONTEXT = {
-  client: {
-    clientName: 'WEB',
-    clientVersion: '2.20240101.00.00',
-  },
-};
+interface YtDlpDumpJson {
+  subtitles?: Record<string, SubtitleFormat[]>;
+  automatic_captions?: Record<string, SubtitleFormat[]>;
+}
 
-export function extractCaptionTracks(playerResponse: Record<string, unknown>): CaptionTrack[] {
-  const captions = playerResponse.captions as InnertubePlayerResponse['captions'] | undefined;
-  const tracks = captions?.playerCaptionsTracklistRenderer?.captionTracks;
-  if (!tracks) return [];
+const YT_DLP_TIMEOUT_MS = 30_000;
 
-  return tracks.map((track) => ({
-    languageCode: track.languageCode,
-    name: track.name.simpleText,
-    baseUrl: track.baseUrl,
-    kind: track.kind,
-  }));
+async function runYtDlp(args: string[]): Promise<string> {
+  try {
+    const { stdout } = await execFileAsync('yt-dlp', args, {
+      timeout: YT_DLP_TIMEOUT_MS,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    return stdout;
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'code' in err && err.code === 'ENOENT') {
+      throw new Error(
+        'yt-dlp is not installed. Install it: https://github.com/yt-dlp/yt-dlp#installation',
+      );
+    }
+    throw err;
+  }
+}
+
+function findJson3Url(formats: SubtitleFormat[]): string | undefined {
+  return formats.find((f) => f.ext === 'json3')?.url;
+}
+
+function buildTracksFromDumpJson(dumpJson: YtDlpDumpJson): CaptionTrack[] {
+  const tracks: CaptionTrack[] = [];
+
+  const subs = dumpJson.subtitles ?? {};
+  for (const [lang, formats] of Object.entries(subs)) {
+    const json3Url = findJson3Url(formats) ?? '';
+    tracks.push({
+      languageCode: lang,
+      name: lang,
+      baseUrl: json3Url,
+      kind: undefined,
+    });
+  }
+
+  const auto = dumpJson.automatic_captions ?? {};
+  for (const [lang, formats] of Object.entries(auto)) {
+    if (subs[lang]) continue;
+    const json3Url = findJson3Url(formats) ?? '';
+    tracks.push({
+      languageCode: lang,
+      name: `${lang} (auto)`,
+      baseUrl: json3Url,
+      kind: 'asr',
+    });
+  }
+
+  return tracks;
+}
+
+export function parseJson3Subtitles(json3: Json3Response): TranscriptSegment[] {
+  const events = json3.events ?? [];
+  const segments: TranscriptSegment[] = [];
+
+  for (const event of events) {
+    if (!event.segs || event.segs.length === 0) continue;
+
+    const text = event.segs.map((s) => s.utf8 ?? '').join('');
+    segments.push({
+      text,
+      start: (event.tStartMs ?? 0) / 1000,
+      duration: (event.dDurationMs ?? 0) / 1000,
+    });
+  }
+
+  return segments;
 }
 
 export function selectTrack(tracks: CaptionTrack[], lang?: string): CaptionTrack {
@@ -72,79 +140,53 @@ export function selectTrack(tracks: CaptionTrack[], lang?: string): CaptionTrack
   return tracks[0];
 }
 
-function decodeHtmlEntities(text: string): string {
-  return text
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#x27;/g, "'")
-    .replace(/&#(\d+);/g, (_match, code) => String.fromCharCode(parseInt(code, 10)));
-}
-
-export function parseTimedTextXml(xml: string): TranscriptSegment[] {
-  const segments: TranscriptSegment[] = [];
-  const regex = /<text\s+start="([^"]*?)"\s+dur="([^"]*?)"[^>]*>([\s\S]*?)<\/text>/g;
-
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(xml)) !== null) {
-    segments.push({
-      start: parseFloat(match[1]),
-      duration: parseFloat(match[2]),
-      text: decodeHtmlEntities(match[3]),
-    });
-  }
-
-  return segments;
-}
-
-async function fetchPlayerResponse(videoId: string): Promise<InnertubePlayerResponse> {
-  const response = await fetch(INNERTUBE_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      context: INNERTUBE_CONTEXT,
-      videoId,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch player response: ${response.status}`);
-  }
-
-  return (await response.json()) as InnertubePlayerResponse;
-}
-
-async function fetchTimedText(trackUrl: string): Promise<string> {
-  const response = await fetch(trackUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch timed text: ${response.status}`);
-  }
-  return response.text();
+async function fetchDumpJson(videoId: string): Promise<YtDlpDumpJson> {
+  const stdout = await runYtDlp([
+    '--dump-json',
+    '--skip-download',
+    `https://www.youtube.com/watch?v=${videoId}`,
+  ]);
+  return JSON.parse(stdout) as YtDlpDumpJson;
 }
 
 export async function fetchTranscript(videoId: string, lang?: string): Promise<TranscriptResult> {
-  const playerResponse = await fetchPlayerResponse(videoId);
-  const tracks = extractCaptionTracks(playerResponse as Record<string, unknown>);
+  const dumpJson = await fetchDumpJson(videoId);
+  const tracks = buildTracksFromDumpJson(dumpJson);
 
   if (tracks.length === 0) {
     throw new Error(`No captions available for video: ${videoId}`);
   }
 
   const track = selectTrack(tracks, lang);
-  const xml = await fetchTimedText(track.baseUrl);
-  const segments = parseTimedTextXml(xml);
+
+  const isAuto = track.kind === 'asr';
+  const source = isAuto
+    ? dumpJson.automatic_captions ?? {}
+    : dumpJson.subtitles ?? {};
+  const formats = source[track.languageCode];
+  const json3Url = formats ? findJson3Url(formats) : undefined;
+
+  if (!json3Url) {
+    throw new Error(`No json3 subtitle format available for language: ${track.languageCode}`);
+  }
+
+  const response = await fetch(json3Url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch subtitle data: ${response.status}`);
+  }
+
+  const json3Data = (await response.json()) as Json3Response;
+  const segments = parseJson3Subtitles(json3Data);
 
   return {
     videoId,
     language: track.languageCode,
-    isAutoGenerated: track.kind === 'asr',
+    isAutoGenerated: isAuto,
     segments,
   };
 }
 
 export async function listAvailableTracks(videoId: string): Promise<CaptionTrack[]> {
-  const playerResponse = await fetchPlayerResponse(videoId);
-  return extractCaptionTracks(playerResponse as Record<string, unknown>);
+  const dumpJson = await fetchDumpJson(videoId);
+  return buildTracksFromDumpJson(dumpJson);
 }

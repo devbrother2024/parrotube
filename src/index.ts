@@ -37,7 +37,7 @@ export function createProgram(): Command {
   program
     .name('parrotube')
     .description('YouTube Analytics CLI for AI agents and humans\n\nCommands marked [no auth] work without authentication.')
-    .version('0.3.0')
+    .version('0.3.1')
     .option('-p, --period <value>', 'Shorthand period: 7d, 28d, 90d, 1y', '28d')
     .option('--start-date <YYYY-MM-DD>', 'Custom start date')
     .option('--end-date <YYYY-MM-DD>', 'Custom end date')
