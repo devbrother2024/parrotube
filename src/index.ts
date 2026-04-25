@@ -30,7 +30,6 @@ import { dataCaptionsAction } from './commands/data-captions.js';
 import { dataTranscriptAction } from './commands/data-transcript.js';
 import { dataCategoriesAction } from './commands/data-categories.js';
 import { dataI18nAction } from './commands/data-i18n.js';
-import { printWelcomeBanner } from './welcome-banner.js';
 
 export function createProgram(): Command {
   const program = new Command();
@@ -364,6 +363,7 @@ export async function runCli(argv: readonly string[] = process.argv): Promise<vo
   const program = createProgram();
 
   if (shouldPrintWelcomeBanner(argv)) {
+    const { printWelcomeBanner } = await import('./welcome-banner.js');
     printWelcomeBanner(process.stderr);
   }
 
