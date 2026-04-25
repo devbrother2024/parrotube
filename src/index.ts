@@ -37,7 +37,7 @@ export function createProgram(): Command {
   program
     .name('parrotube')
     .description('YouTube Analytics CLI for AI agents and humans\n\nCommands marked [no auth] work without authentication.')
-    .version('0.3.1')
+    .version('0.4.0')
     .option('-p, --period <value>', 'Shorthand period: 7d, 28d, 90d, 1y', '28d')
     .option('--start-date <YYYY-MM-DD>', 'Custom start date')
     .option('--end-date <YYYY-MM-DD>', 'Custom end date')
@@ -350,10 +350,34 @@ export function createProgram(): Command {
   return program;
 }
 
+export function shouldPrintWelcomeBanner(argv: readonly string[]): boolean {
+  const args = argv.slice(2);
+  if (args.length === 0) return true;
+  if (args.length !== 1) return false;
+
+  const [arg] = args;
+  return arg === '--help' || arg === '-h' || arg === 'help';
+}
+
+export async function runCli(argv: readonly string[] = process.argv): Promise<void> {
+  const program = createProgram();
+
+  if (shouldPrintWelcomeBanner(argv)) {
+    const { printWelcomeBanner } = await import('./welcome-banner.js');
+    printWelcomeBanner(process.stderr);
+  }
+
+  if (argv.length <= 2) {
+    program.outputHelp();
+    return;
+  }
+
+  await program.parseAsync([...argv]);
+}
+
 async function main(): Promise<void> {
   try {
-    const program = createProgram();
-    await program.parseAsync(process.argv);
+    await runCli(process.argv);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     process.stderr.write(JSON.stringify({ error: message }) + '\n');
