@@ -39,10 +39,10 @@ npx parrotube auth
 | Category | Commands | Auth Required |
 |----------|----------|:---:|
 | **Analytics** | overview, demographics, geography, traffic, devices, revenue, sharing, top-videos, time-series, search-terms, video, query, report | Yes |
-| **Data API** | data:comments, data:channel, data:videos, data:playlists, data:playlist-items, data:search, data:subscriptions, data:activities, data:captions, data:categories, data:i18n | Yes |
+| **Data API** | data:comments, data:channel, data:videos, data:playlists, data:playlist-items, data:search, data:subscriptions, data:activities, data:captions, data:captions:upload, data:categories, data:i18n | Yes |
 | **No Auth** | data:transcript | **No** |
 
-`data:transcript` uses [yt-dlp](https://github.com/yt-dlp/yt-dlp) to fetch subtitles and works without any authentication. All other commands require OAuth2 setup (see [Setup](#setup-one-time)).
+`data:transcript` uses [yt-dlp](https://github.com/yt-dlp/yt-dlp) to fetch subtitles and works without any authentication. All other commands require OAuth2 setup (see [Setup](#setup-one-time)). If you authenticated before `data:captions:upload` existed, run `parrotube auth` again so the token includes caption upload permissions.
 
 ## Commands
 
@@ -243,6 +243,17 @@ List captions for a video.
 ```bash
 parrotube data:captions --video-id dQw4w9WgXcQ
 ```
+
+### data:captions:upload
+
+Upload a timed caption track for a video. The upload is public by default; add `--draft` to keep the track non-public while you review it.
+
+```bash
+parrotube data:captions:upload --video-id dQw4w9WgXcQ --file ./captions.vtt --language ko --name "Korean captions"
+parrotube data:captions:upload --video-id dQw4w9WgXcQ --file ./captions.srt --language en --name "English captions" --draft
+```
+
+This command uses YouTube Data API `captions.insert`, which costs 400 quota units per upload and accepts files up to 100MB. Existing OAuth tokens may only have read scopes; run `parrotube auth` again if the command asks for reauthorization.
 
 ### data:transcript (no auth required)
 
