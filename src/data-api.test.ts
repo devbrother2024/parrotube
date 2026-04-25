@@ -1,4 +1,7 @@
 import { describe, expect, test, mock, afterEach } from 'bun:test';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 const mockCommentThreadsList = mock(() =>
   Promise.resolve({
@@ -153,6 +156,20 @@ const mockCaptionsList = mock(() =>
   }),
 );
 
+const mockCaptionsInsert = mock(() =>
+  Promise.resolve({
+    data: {
+      id: 'caption-uploaded',
+      snippet: {
+        videoId: 'video-1',
+        language: 'ko',
+        name: 'Korean captions',
+        isDraft: false,
+      },
+    },
+  }),
+);
+
 const mockVideoCategoriesList = mock(() =>
   Promise.resolve({
     data: {
@@ -193,7 +210,7 @@ mock.module('googleapis', () => ({
       search: { list: mockSearchList },
       subscriptions: { list: mockSubscriptionsList },
       activities: { list: mockActivitiesList },
-      captions: { list: mockCaptionsList },
+      captions: { list: mockCaptionsList, insert: mockCaptionsInsert },
       videoCategories: { list: mockVideoCategoriesList },
       i18nRegions: { list: mockI18nRegionsList },
       i18nLanguages: { list: mockI18nLanguagesList },
@@ -212,6 +229,7 @@ describe('data-api', () => {
     mockSubscriptionsList.mockClear();
     mockActivitiesList.mockClear();
     mockCaptionsList.mockClear();
+    mockCaptionsInsert.mockClear();
     mockVideoCategoriesList.mockClear();
     mockI18nRegionsList.mockClear();
     mockI18nLanguagesList.mockClear();
@@ -452,6 +470,67 @@ describe('data-api', () => {
       }),
     );
     expect(result.items[0].snippet.language).toBe('ko');
+  });
+
+  test('uploadCaption - 자막 파일과 metadata를 captions.insert로 전달', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'parrotube-caption-'));
+    const captionPath = path.join(tmpDir, 'captions.vtt');
+    fs.writeFileSync(captionPath, 'WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nHello\n');
+
+    const { uploadCaption } = await import('./data-api');
+    const fakeAuth = {} as never;
+
+    const result = await uploadCaption({
+      auth: fakeAuth,
+      videoId: 'video-1',
+      filePath: captionPath,
+      language: 'ko',
+      name: 'Korean captions',
+      isDraft: false,
+    });
+
+    expect(mockCaptionsInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        part: ['snippet'],
+        requestBody: {
+          snippet: {
+            videoId: 'video-1',
+            language: 'ko',
+            name: 'Korean captions',
+            isDraft: false,
+          },
+        },
+        media: expect.objectContaining({
+          mimeType: 'application/octet-stream',
+        }),
+      }),
+    );
+    const request = mockCaptionsInsert.mock.calls[0]?.[0] as {
+      media?: { body?: unknown };
+    };
+    expect(request.media?.body).toBeTruthy();
+    expect(result.id).toBe('caption-uploaded');
+  });
+
+  test('uploadCaption - 100MB 초과 파일은 업로드 전 거부', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'parrotube-caption-'));
+    const captionPath = path.join(tmpDir, 'large.vtt');
+    fs.writeFileSync(captionPath, '');
+    fs.truncateSync(captionPath, 100 * 1024 * 1024 + 1);
+
+    const { uploadCaption } = await import('./data-api');
+
+    await expect(
+      uploadCaption({
+        auth: {} as never,
+        videoId: 'video-1',
+        filePath: captionPath,
+        language: 'ko',
+        name: 'Large captions',
+        isDraft: false,
+      }),
+    ).rejects.toThrow('Caption file must be 100MB or smaller');
+    expect(mockCaptionsInsert).not.toHaveBeenCalled();
   });
 
   test('listVideoCategories - regionCode로 호출', async () => {

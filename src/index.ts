@@ -3,7 +3,13 @@
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
-import { authenticate, getAuthClient } from './auth.js';
+import {
+  authenticate,
+  getAuthClient,
+  loadToken,
+  requireTokenScope,
+  YOUTUBE_FORCE_SSL_SCOPE,
+} from './auth.js';
 import { resolveDates } from './utils/date.js';
 import { overviewAction } from './commands/overview.js';
 import { demographicsAction } from './commands/demographics.js';
@@ -27,6 +33,7 @@ import { dataSearchAction } from './commands/data-search.js';
 import { dataSubscriptionsAction } from './commands/data-subscriptions.js';
 import { dataActivitiesAction } from './commands/data-activities.js';
 import { dataCaptionsAction } from './commands/data-captions.js';
+import { dataCaptionsUploadAction } from './commands/data-captions-upload.js';
 import { dataTranscriptAction } from './commands/data-transcript.js';
 import { dataCategoriesAction } from './commands/data-categories.js';
 import { dataI18nAction } from './commands/data-i18n.js';
@@ -37,7 +44,7 @@ export function createProgram(): Command {
   program
     .name('parrotube')
     .description('YouTube Analytics CLI for AI agents and humans\n\nCommands marked [no auth] work without authentication.')
-    .version('0.3.1')
+    .version('0.4.0')
     .option('-p, --period <value>', 'Shorthand period: 7d, 28d, 90d, 1y', '28d')
     .option('--start-date <YYYY-MM-DD>', 'Custom start date')
     .option('--end-date <YYYY-MM-DD>', 'Custom end date')
@@ -304,6 +311,32 @@ export function createProgram(): Command {
       await dataCaptionsAction(auth, {
         format: opts.format,
         videoId: cmdOpts.videoId,
+      });
+    });
+
+  program
+    .command('data:captions:upload')
+    .description('Upload a caption track for a video')
+    .requiredOption('--video-id <id>', 'YouTube video ID')
+    .requiredOption('--file <path>', 'Caption file path')
+    .requiredOption('--language <code>', 'Caption language code (e.g. ko, en)')
+    .requiredOption('--name <name>', 'Caption track name')
+    .option('--draft', 'Upload as a non-public draft')
+    .action(async (cmdOpts) => {
+      const opts = program.opts();
+      requireTokenScope(
+        loadToken(),
+        YOUTUBE_FORCE_SSL_SCOPE,
+        'data:captions:upload',
+      );
+      const auth = await getAuthClient();
+      await dataCaptionsUploadAction(auth, {
+        format: opts.format,
+        videoId: cmdOpts.videoId,
+        file: cmdOpts.file,
+        language: cmdOpts.language,
+        name: cmdOpts.name,
+        draft: cmdOpts.draft ?? false,
       });
     });
 

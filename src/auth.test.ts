@@ -97,13 +97,22 @@ describe('loadToken / saveToken', () => {
 });
 
 describe('SCOPES', () => {
-  test('yt-analytics.readonly와 youtube.readonly 포함', async () => {
-    const { SCOPES } = await import('./auth');
+  test('yt-analytics.readonly, youtube.readonly, youtube.force-ssl 포함', async () => {
+    const { SCOPES, YOUTUBE_FORCE_SSL_SCOPE } = await import('./auth');
     expect(SCOPES).toContain(
       'https://www.googleapis.com/auth/yt-analytics.readonly',
     );
     expect(SCOPES).toContain(
       'https://www.googleapis.com/auth/youtube.readonly',
     );
+    expect(SCOPES).toContain(YOUTUBE_FORCE_SSL_SCOPE);
+  });
+
+  test('requireTokenScope은 누락된 scope에 대해 재인증 안내 에러를 던진다', async () => {
+    const { requireTokenScope, YOUTUBE_FORCE_SSL_SCOPE } = await import('./auth');
+
+    expect(() =>
+      requireTokenScope(FAKE_TOKEN, YOUTUBE_FORCE_SSL_SCOPE, 'data:captions:upload'),
+    ).toThrow('Run `parrotube auth` again');
   });
 });

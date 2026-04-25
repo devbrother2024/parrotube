@@ -12,7 +12,11 @@ const TOKEN_PATH = path.join(CONFIG_DIR, 'token.json');
 export const SCOPES = [
   'https://www.googleapis.com/auth/yt-analytics.readonly',
   'https://www.googleapis.com/auth/youtube.readonly',
+  'https://www.googleapis.com/auth/youtube.force-ssl',
 ];
+
+export const YOUTUBE_FORCE_SSL_SCOPE =
+  'https://www.googleapis.com/auth/youtube.force-ssl';
 
 interface ClientSecretFile {
   installed: {
@@ -39,6 +43,41 @@ export function loadToken(): Record<string, unknown> | null {
 export function saveToken(token: Record<string, unknown>): void {
   fs.mkdirSync(CONFIG_DIR, { recursive: true });
   fs.writeFileSync(TOKEN_PATH, JSON.stringify(token, null, 2));
+}
+
+function getTokenScopes(token: Record<string, unknown> | null): string[] {
+  if (!token) return [];
+
+  const scope = token.scope;
+  if (typeof scope === 'string') {
+    return scope.split(/\s+/).filter(Boolean);
+  }
+
+  if (Array.isArray(scope)) {
+    return scope.filter((value): value is string => typeof value === 'string');
+  }
+
+  return [];
+}
+
+export function tokenHasScope(
+  token: Record<string, unknown> | null,
+  requiredScope: string,
+): boolean {
+  return getTokenScopes(token).includes(requiredScope);
+}
+
+export function requireTokenScope(
+  token: Record<string, unknown> | null,
+  requiredScope: string,
+  commandName: string,
+): void {
+  if (tokenHasScope(token, requiredScope)) return;
+
+  throw new Error(
+    `${commandName} requires OAuth scope ${requiredScope}. ` +
+      'Run `parrotube auth` again to reauthorize.',
+  );
 }
 
 export async function authenticate(): Promise<void> {
