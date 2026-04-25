@@ -22,11 +22,25 @@ describe('CLI program', () => {
     expect(program.name()).toBe('parrotube');
   });
 
+  test('top-level no args, --help, -h, help만 welcome banner 표시 대상', async () => {
+    const { shouldPrintWelcomeBanner } = await import('./index');
+
+    expect(shouldPrintWelcomeBanner(['node', 'parrotube'])).toBe(true);
+    expect(shouldPrintWelcomeBanner(['node', 'parrotube', '--help'])).toBe(true);
+    expect(shouldPrintWelcomeBanner(['node', 'parrotube', '-h'])).toBe(true);
+    expect(shouldPrintWelcomeBanner(['node', 'parrotube', 'help'])).toBe(true);
+    expect(shouldPrintWelcomeBanner(['node', 'parrotube', 'overview'])).toBe(false);
+    expect(shouldPrintWelcomeBanner(['node', 'parrotube', 'data:comments'])).toBe(false);
+    expect(shouldPrintWelcomeBanner(['node', 'parrotube', 'overview', '--help'])).toBe(false);
+    expect(shouldPrintWelcomeBanner(['node', 'parrotube', 'help', 'overview'])).toBe(false);
+  });
+
   test('공통 옵션 --period, --start-date, --end-date, --format 등록', async () => {
     const { createProgram } = await import('./index');
     const program = createProgram();
 
     const help = program.helpInformation();
+    expect(help).toContain('Usage: parrotube');
     expect(help).toContain('--period');
     expect(help).toContain('--start-date');
     expect(help).toContain('--end-date');
