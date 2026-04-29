@@ -1,8 +1,14 @@
 # parrotube
 
+<p align="center">
+  <img src="./assets/parrotube-logo.png" alt="parrotube logo" width="220">
+</p>
+
 YouTube Analytics CLI for AI agents and humans. Pull channel demographics, geography, traffic sources, device stats, revenue, time-series, search terms, and more, or query YouTube Data API resources from the same CLI.
 
 **Works with:** Claude Code, Cursor, and any agent that can run shell commands.
+
+CLI data commands keep stdout reserved for structured JSON/Table output. The welcome banner is written to stderr only for top-level help entry points.
 
 ## Prerequisites
 

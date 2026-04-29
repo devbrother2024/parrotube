@@ -383,10 +383,34 @@ export function createProgram(): Command {
   return program;
 }
 
+export function shouldPrintWelcomeBanner(argv: readonly string[]): boolean {
+  const args = argv.slice(2);
+  if (args.length === 0) return true;
+  if (args.length !== 1) return false;
+
+  const [arg] = args;
+  return arg === '--help' || arg === '-h' || arg === 'help';
+}
+
+export async function runCli(argv: readonly string[] = process.argv): Promise<void> {
+  const program = createProgram();
+
+  if (shouldPrintWelcomeBanner(argv)) {
+    const { printWelcomeBanner } = await import('./welcome-banner.js');
+    printWelcomeBanner(process.stderr);
+  }
+
+  if (argv.length <= 2) {
+    program.outputHelp();
+    return;
+  }
+
+  await program.parseAsync([...argv]);
+}
+
 async function main(): Promise<void> {
   try {
-    const program = createProgram();
-    await program.parseAsync(process.argv);
+    await runCli(process.argv);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     process.stderr.write(JSON.stringify({ error: message }) + '\n');
