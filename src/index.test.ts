@@ -10,8 +10,10 @@ mock.module('./auth', () => ({
   authenticate: mock(() => Promise.resolve()),
   getAuthClient: mock(() => Promise.resolve({})),
   SCOPES: [],
+  YOUTUBE_FORCE_SSL_SCOPE: 'https://www.googleapis.com/auth/youtube.force-ssl',
   loadClientSecret: mock(),
   loadToken: mock(),
+  requireTokenScope: mock(),
   saveToken: mock(),
 }));
 
@@ -33,12 +35,12 @@ describe('CLI program', () => {
     expect(help).toContain('--format');
   });
 
-  test('서브커맨드 27개 등록 (analytics + data api)', async () => {
+  test('서브커맨드 28개 등록 (analytics + data api + public)', async () => {
     const { createProgram } = await import('./index');
     const program = createProgram();
 
     const commandNames = program.commands.map((c) => c.name());
-    expect(commandNames).toHaveLength(27);
+    expect(commandNames).toHaveLength(28);
     expect(commandNames).toContain('auth');
     expect(commandNames).toContain('overview');
     expect(commandNames).toContain('demographics');
@@ -66,5 +68,6 @@ describe('CLI program', () => {
     expect(commandNames).toContain('data:transcript');
     expect(commandNames).toContain('data:categories');
     expect(commandNames).toContain('data:i18n');
+    expect(commandNames).toContain('public:report');
   });
 });
