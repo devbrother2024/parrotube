@@ -1,6 +1,6 @@
 # parrotube
 
-YouTube Analytics CLI for AI agents and humans. Pull channel demographics, geography, traffic sources, device stats, revenue, time-series, search terms, and more, or query YouTube Data API resources from the same CLI.
+YouTube Analytics and public channel analysis CLI for AI agents and humans. Pull owner-authorized Analytics reports, query YouTube Data API resources, or analyze arbitrary public channels from public metadata, public video stats, comments, and transcripts.
 
 **Works with:** Claude Code, Cursor, and any agent that can run shell commands.
 
@@ -39,10 +39,15 @@ npx parrotube auth
 | Category | Commands | Auth Required |
 |----------|----------|:---:|
 | **Analytics** | overview, demographics, geography, traffic, devices, revenue, sharing, top-videos, time-series, search-terms, video, query, report | Yes |
+| **Public Analysis** | public:report | Yes |
 | **Data API** | data:comments, data:channel, data:videos, data:playlists, data:playlist-items, data:search, data:subscriptions, data:activities, data:captions, data:captions:upload, data:categories, data:i18n | Yes |
 | **No Auth** | data:transcript | **No** |
 
-`data:transcript` uses [yt-dlp](https://github.com/yt-dlp/yt-dlp) to fetch subtitles and works without any authentication. All other commands require OAuth2 setup (see [Setup](#setup-one-time)). If you authenticated before `data:captions:upload` existed, run `parrotube auth` again so the token includes caption upload permissions.
+`public:report` uses OAuth for YouTube Data API quota/access, but it only reports public channel/video/comment data and explicitly marks owner-only Analytics metrics as unavailable. `data:transcript` uses [yt-dlp](https://github.com/yt-dlp/yt-dlp) to fetch subtitles and works without any authentication. All other commands require OAuth2 setup (see [Setup](#setup-one-time)). If you authenticated before `data:captions:upload` existed, run `parrotube auth` again so the token includes caption upload permissions.
+
+## API Boundary
+
+Analytics commands can only read channels you own or are authorized to manage. Metrics such as CTR, audience retention, traffic sources, demographics, revenue, and YouTube Search terms are not available for arbitrary public channels. Public analysis commands do not estimate those private metrics; they return them under `unavailableMetrics` with reasons.
 
 ## Commands
 
@@ -161,6 +166,30 @@ parrotube query --metrics estimatedMinutesWatched --filters "video==abc123" --pe
 ```bash
 parrotube report --period 28d
 ```
+
+## Public Analysis Commands
+
+These commands analyze any public channel from public data. They do not require ownership of the target channel, but they still use your OAuth client for YouTube Data API calls.
+
+### public:report
+
+Build a public channel report from channel metadata, uploads, public video statistics, and explicit capability limits.
+Because this is a nested composite report, it always emits JSON even if the global `--format table` option is set.
+
+```bash
+parrotube public:report --channel-id UC_x5XG1OV2P6uZZ5FSM9Ttw --max-videos 10
+parrotube public:report --channel-id UC_x5XG1OV2P6uZZ5FSM9Ttw --include-comments --max-comments-per-video 20
+parrotube public:report --channel-id UC_x5XG1OV2P6uZZ5FSM9Ttw --include-transcripts --lang ko
+```
+
+The JSON output includes:
+
+- `availableMetrics`: public metrics collected from Data API or public subtitles.
+- `unavailableMetrics`: private owner-only Analytics metrics such as `ctr`, `audienceRetention`, `trafficSources`, `demographics`, `revenue`, and `searchTerms`.
+- `channel`: public channel metadata and public counts.
+- `videos`: recent public uploads and public video statistics.
+- `commentsSummary`: included only when `--include-comments` is set.
+- `transcriptsSummary`: included only when `--include-transcripts` is set.
 
 ## YouTube Data API Commands
 
@@ -297,6 +326,17 @@ parrotube data:i18n --type languages
 | `--end-date <YYYY-MM-DD>` | Custom end date | - |
 | `--format <json\|table>` | Output format | `json` |
 
+## Public Report Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--channel-id <id>` | Target public YouTube channel ID | required |
+| `--max-videos <number>` | Max recent uploads to analyze | `10` |
+| `--include-comments` | Fetch public comments for analyzed videos | off |
+| `--max-comments-per-video <number>` | Max public comments per analyzed video | `20` |
+| `--include-transcripts` | Fetch public transcripts for analyzed videos | off |
+| `--lang <code>` | Transcript language code | auto |
+
 ## For AI Agents
 
 Every command writes structured JSON to stdout. Errors go to stderr as `{"error": "..."}`.
@@ -305,12 +345,16 @@ Every command writes structured JSON to stdout. Errors go to stderr as `{"error"
 # Full channel snapshot
 npx parrotube report --period 28d
 
+# Public competitor/channel snapshot
+npx parrotube public:report --channel-id CHANNEL_ID --max-videos 10 --format json
+
 # Composable primitives — agents can mix & match
 npx parrotube time-series --period 90d --by day --format json
 npx parrotube query --metrics views,estimatedRevenue --dimensions country --sort -views
 npx parrotube video --video-id VIDEO_ID --period 28d
 npx parrotube data:videos --video-id VIDEO_ID --format json
 npx parrotube data:comments --video-id VIDEO_ID --max 100 --format json
+npx parrotube data:transcript --video-id VIDEO_ID --lang ko --format json
 ```
 
 ## License
