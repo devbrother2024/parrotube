@@ -36,6 +36,12 @@ import { dataCaptionsAction } from './commands/data-captions.js';
 import { dataCaptionsUploadAction } from './commands/data-captions-upload.js';
 import { dataCategoriesAction } from './commands/data-categories.js';
 import { dataI18nAction } from './commands/data-i18n.js';
+import type { WritableLike } from './welcome-banner.js';
+
+export interface RunCliOptions {
+  stderr?: WritableLike;
+  printWelcomeBanner?: (stream: WritableLike) => void;
+}
 
 export function createProgram(): Command {
   const program = new Command();
@@ -43,7 +49,7 @@ export function createProgram(): Command {
   program
     .name('parrotube')
     .description('YouTube Analytics CLI for AI agents and humans')
-    .version('0.5.0')
+    .version('0.6.0')
     .option('-p, --period <value>', 'Shorthand period: 7d, 28d, 90d, 1y', '28d')
     .option('--start-date <YYYY-MM-DD>', 'Custom start date')
     .option('--end-date <YYYY-MM-DD>', 'Custom end date')
@@ -368,10 +374,42 @@ export function createProgram(): Command {
   return program;
 }
 
+export function shouldPrintWelcomeBanner(argv: readonly string[]): boolean {
+  const args = argv.slice(2);
+  if (args.length === 0) return true;
+  if (args.length !== 1) return false;
+
+  const [arg] = args;
+  return arg === '--help' || arg === '-h' || arg === 'help';
+}
+
+export async function runCli(
+  argv: readonly string[] = process.argv,
+  options: RunCliOptions = {},
+): Promise<void> {
+  const program = createProgram();
+
+  if (shouldPrintWelcomeBanner(argv)) {
+    const stderr = options.stderr ?? process.stderr;
+    if (options.printWelcomeBanner) {
+      options.printWelcomeBanner(stderr);
+    } else {
+      const { printWelcomeBanner } = await import('./welcome-banner.js');
+      printWelcomeBanner(stderr);
+    }
+  }
+
+  if (argv.length <= 2) {
+    program.outputHelp();
+    return;
+  }
+
+  await program.parseAsync([...argv]);
+}
+
 async function main(): Promise<void> {
   try {
-    const program = createProgram();
-    await program.parseAsync(process.argv);
+    await runCli(process.argv);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     process.stderr.write(JSON.stringify({ error: message }) + '\n');
