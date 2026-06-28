@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { google } from 'googleapis';
 import type { OAuth2Client } from 'google-auth-library';
 
@@ -234,6 +235,65 @@ export async function listCaptions(params: ListCaptionsParams): Promise<DataApiR
     videoId: params.videoId,
   });
   return response.data as DataApiResult;
+}
+
+const MAX_CAPTION_FILE_SIZE_BYTES = 100 * 1024 * 1024;
+
+export interface UploadCaptionParams {
+  auth: OAuth2Client;
+  videoId: string;
+  filePath: string;
+  language: string;
+  name: string;
+  isDraft: boolean;
+}
+
+export interface CaptionResource {
+  id?: string;
+  snippet?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+function validateCaptionFile(filePath: string): void {
+  let stat: fs.Stats;
+  try {
+    stat = fs.statSync(filePath);
+  } catch {
+    throw new Error(`Caption file not found: ${filePath}`);
+  }
+
+  if (!stat.isFile()) {
+    throw new Error(`Caption path must be a file: ${filePath}`);
+  }
+
+  if (stat.size > MAX_CAPTION_FILE_SIZE_BYTES) {
+    throw new Error('Caption file must be 100MB or smaller');
+  }
+}
+
+export async function uploadCaption(
+  params: UploadCaptionParams,
+): Promise<CaptionResource> {
+  validateCaptionFile(params.filePath);
+
+  const yt = getYouTubeClient(params.auth);
+  const response = await yt.captions.insert({
+    part: ['snippet'],
+    requestBody: {
+      snippet: {
+        videoId: params.videoId,
+        language: params.language,
+        name: params.name,
+        isDraft: params.isDraft,
+      },
+    },
+    media: {
+      mimeType: 'application/octet-stream',
+      body: fs.createReadStream(params.filePath),
+    },
+  });
+
+  return response.data as CaptionResource;
 }
 
 // ---------- Video Categories ----------

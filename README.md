@@ -13,7 +13,6 @@ CLI data commands keep stdout reserved for structured JSON/Table output. The wel
 ## Prerequisites
 
 - **Node.js** >= 18
-- **yt-dlp** — required for `data:transcript` command. [Install guide](https://github.com/yt-dlp/yt-dlp#installation)
 
 ## Installation
 
@@ -45,10 +44,24 @@ npx parrotube auth
 | Category | Commands | Auth Required |
 |----------|----------|:---:|
 | **Analytics** | overview, demographics, geography, traffic, devices, revenue, sharing, top-videos, time-series, search-terms, video, query, report | Yes |
-| **Data API** | data:comments, data:channel, data:videos, data:playlists, data:playlist-items, data:search, data:subscriptions, data:activities, data:captions, data:categories, data:i18n | Yes |
-| **No Auth** | data:transcript | **No** |
+| **Data API** | data:comments, data:channel, data:videos, data:playlists, data:playlist-items, data:search, data:subscriptions, data:activities, data:captions, data:captions:upload, data:categories, data:i18n | Yes |
 
-`data:transcript` uses [yt-dlp](https://github.com/yt-dlp/yt-dlp) to fetch subtitles and works without any authentication. All other commands require OAuth2 setup (see [Setup](#setup-one-time)).
+All parrotube data and analytics commands require OAuth2 setup (see [Setup](#setup-one-time)). If you authenticated before `data:captions:upload` existed, run `parrotube auth` again so the token includes caption upload permissions.
+
+## Transcript Extraction
+
+parrotube does not wrap public subtitle extraction. Use [yt-dlp](https://github.com/yt-dlp/yt-dlp#installation) directly for transcript/subtitle work:
+
+```bash
+# Inspect available subtitle tracks
+yt-dlp --list-subs 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+
+# Download Korean original auto-captions as JSON3
+yt-dlp --write-auto-subs --sub-langs ko-orig --sub-format json3 --skip-download 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+
+# Download manual Korean subtitles when present
+yt-dlp --write-subs --sub-langs ko --sub-format json3 --skip-download 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+```
 
 ## Commands
 
@@ -250,20 +263,16 @@ List captions for a video.
 parrotube data:captions --video-id dQw4w9WgXcQ
 ```
 
-### data:transcript (no auth required)
+### data:captions:upload
 
-Extract transcript (subtitles/captions text) from any public video, including auto-generated captions. **No authentication required** — works without OAuth setup.
+Upload a timed caption track for a video. The upload is public by default; add `--draft` to keep the track non-public while you review it.
 
 ```bash
-# JSON output with timestamps
-parrotube data:transcript --video-id dQw4w9WgXcQ
-
-# Specific language
-parrotube data:transcript --video-id dQw4w9WgXcQ --lang ko
-
-# Plain text only (no timestamps)
-parrotube data:transcript --video-id dQw4w9WgXcQ --format text
+parrotube data:captions:upload --video-id dQw4w9WgXcQ --file ./captions.vtt --language ko --name "Korean captions"
+parrotube data:captions:upload --video-id dQw4w9WgXcQ --file ./captions.srt --language en --name "English captions" --draft
 ```
+
+This command uses YouTube Data API `captions.insert`, which costs 400 quota units per upload and accepts files up to 100MB. Existing OAuth tokens may only have read scopes; run `parrotube auth` again if the command asks for reauthorization.
 
 ### data:categories
 

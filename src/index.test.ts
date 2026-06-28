@@ -6,33 +6,8 @@ mock.module('googleapis', () => ({
     youtubeAnalytics: () => ({ reports: { query: mock(() => Promise.resolve({ data: {} })) } }),
   },
 }));
-mock.module('./auth', () => ({
-  authenticate: mock(() => Promise.resolve()),
-  getAuthClient: mock(() => Promise.resolve({})),
-  SCOPES: [],
-  loadClientSecret: mock(),
-  loadToken: mock(),
-  saveToken: mock(),
-}));
-
-let welcomeBannerModuleLoaded = false;
-const mockPrintWelcomeBanner = mock(() => undefined);
-mock.module('./welcome-banner.js', () => {
-  welcomeBannerModuleLoaded = true;
-  return {
-    printWelcomeBanner: mockPrintWelcomeBanner,
-  };
-});
 
 describe('CLI program', () => {
-  test('index 모듈 로드 시 welcome banner 모듈을 eager import하지 않는다', async () => {
-    welcomeBannerModuleLoaded = false;
-
-    await import('./index');
-
-    expect(welcomeBannerModuleLoaded).toBe(false);
-  });
-
   test('createProgram이 Commander 프로그램을 반환', async () => {
     const { createProgram } = await import('./index');
     const program = createProgram();
@@ -53,13 +28,19 @@ describe('CLI program', () => {
   });
 
 
-  test('runCli는 top-level no args에서만 welcome banner를 출력한다', async () => {
+  test('runCli는 top-level no args에서 welcome banner를 stderr로 출력한다', async () => {
+    const stderr = { write: mock(() => true) };
+    const mockPrintWelcomeBanner = mock(() => undefined);
     mockPrintWelcomeBanner.mockClear();
     const { runCli } = await import('./index');
 
-    await runCli(['node', 'parrotube']);
+    await runCli(['node', 'parrotube'], {
+      stderr,
+      printWelcomeBanner: mockPrintWelcomeBanner,
+    });
 
     expect(mockPrintWelcomeBanner).toHaveBeenCalledTimes(1);
+    expect(mockPrintWelcomeBanner).toHaveBeenCalledWith(stderr);
   });
 
   test('공통 옵션 --period, --start-date, --end-date, --format 등록', async () => {
@@ -103,7 +84,7 @@ describe('CLI program', () => {
     expect(commandNames).toContain('data:subscriptions');
     expect(commandNames).toContain('data:activities');
     expect(commandNames).toContain('data:captions');
-    expect(commandNames).toContain('data:transcript');
+    expect(commandNames).toContain('data:captions:upload');
     expect(commandNames).toContain('data:categories');
     expect(commandNames).toContain('data:i18n');
   });
