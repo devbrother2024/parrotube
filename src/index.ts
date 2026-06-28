@@ -34,7 +34,6 @@ import { dataSubscriptionsAction } from './commands/data-subscriptions.js';
 import { dataActivitiesAction } from './commands/data-activities.js';
 import { dataCaptionsAction } from './commands/data-captions.js';
 import { dataCaptionsUploadAction } from './commands/data-captions-upload.js';
-import { dataTranscriptAction } from './commands/data-transcript.js';
 import { dataCategoriesAction } from './commands/data-categories.js';
 import { dataI18nAction } from './commands/data-i18n.js';
 
@@ -43,8 +42,8 @@ export function createProgram(): Command {
 
   program
     .name('parrotube')
-    .description('YouTube Analytics CLI for AI agents and humans\n\nCommands marked [no auth] work without authentication.')
-    .version('0.4.0')
+    .description('YouTube Analytics CLI for AI agents and humans')
+    .version('0.5.0')
     .option('-p, --period <value>', 'Shorthand period: 7d, 28d, 90d, 1y', '28d')
     .option('--start-date <YYYY-MM-DD>', 'Custom start date')
     .option('--end-date <YYYY-MM-DD>', 'Custom end date')
@@ -337,20 +336,6 @@ export function createProgram(): Command {
         language: cmdOpts.language,
         name: cmdOpts.name,
         draft: cmdOpts.draft ?? false,
-      });
-    });
-
-  program
-    .command('data:transcript')
-    .description('Extract transcript (subtitles/captions text) from a video [no auth]')
-    .requiredOption('--video-id <id>', 'YouTube video ID')
-    .option('--lang <code>', 'Language code (e.g. ko, en)')
-    .action(async (cmdOpts) => {
-      const opts = program.opts();
-      await dataTranscriptAction({
-        format: opts.format,
-        videoId: cmdOpts.videoId,
-        lang: cmdOpts.lang,
       });
     });
 
