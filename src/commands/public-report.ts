@@ -7,8 +7,6 @@ interface ActionOptions {
   maxVideos: number;
   includeComments: boolean;
   maxCommentsPerVideo: number;
-  includeTranscripts: boolean;
-  lang?: string;
 }
 
 export async function publicReportAction(
@@ -21,8 +19,6 @@ export async function publicReportAction(
     maxVideos: options.maxVideos,
     includeComments: options.includeComments,
     maxCommentsPerVideo: options.maxCommentsPerVideo,
-    includeTranscripts: options.includeTranscripts,
-    lang: options.lang,
   });
 
   console.log(JSON.stringify(result, null, 2));

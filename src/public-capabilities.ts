@@ -49,13 +49,6 @@ const AVAILABLE_METRICS: PublicMetricCapability[] = [
     source: 'YouTube Data API commentThreads.list',
     reason: 'Public comment threads can be fetched for videos with comments enabled.',
   },
-  {
-    metric: 'transcripts',
-    label: 'Public transcripts',
-    status: 'available',
-    source: 'yt-dlp subtitle metadata',
-    reason: 'Public subtitles and auto-generated captions can be fetched when YouTube exposes tracks.',
-  },
 ];
 
 const OWNER_ONLY_METRICS: PublicMetricCapability[] = [
@@ -107,6 +100,13 @@ const OWNER_ONLY_METRICS: PublicMetricCapability[] = [
     status: 'unavailable',
     source: 'YouTube Analytics API',
     reason: 'Search terms that drove views are owner-only traffic-source details.',
+  },
+  {
+    metric: 'transcripts',
+    label: 'Public transcripts',
+    status: 'unavailable',
+    source: 'yt-dlp',
+    reason: 'parrotube does not wrap public subtitle extraction; use yt-dlp directly for transcript work.',
   },
 ];
 

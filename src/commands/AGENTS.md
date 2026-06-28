@@ -6,13 +6,13 @@ parrotube CLI는 세 가지 command family를 제공한다.
 
 - Analytics commands: 소유/권한 채널의 YouTube Analytics API 지표 조회.
 - Data API commands: YouTube Data API v3 원시 리소스 조회.
-- Public analysis commands: 임의 공개 채널을 공개 메타데이터/영상 통계/댓글/트랜스크립트로 분석하고, 불가능한 owner-only 지표를 명시.
+- Public analysis commands: 임의 공개 채널을 공개 메타데이터/영상 통계/댓글로 분석하고, 불가능한 owner-only 지표를 명시.
 
 의존성 흐름:
 
 - `commands/*.ts` -> `api.ts` -> `googleapis` (Analytics)
 - `commands/data-*.ts` -> `data-api.ts` -> `googleapis` (Data API)
-- `commands/public-*.ts` -> `public-report.ts` -> `data-api.ts` / `transcript.ts`
+- `commands/public-*.ts` -> `public-report.ts` -> `data-api.ts`
 - `commands/*.ts` -> `utils/formatter.ts`
 
 ## Analytics Subcommand Spec
@@ -92,17 +92,16 @@ parrotube CLI는 세 가지 command family를 제공한다.
 ### public:report
 
 - 입력: `--channel-id` 필수
-- 옵션: `--max-videos`, `--include-comments`, `--max-comments-per-video`, `--include-transcripts`, `--lang`
+- 옵션: `--max-videos`, `--include-comments`, `--max-comments-per-video`
 - 데이터 흐름:
   1. `getChannel({ channelId })`로 공개 채널 메타데이터와 uploads playlist ID 조회
   2. `listPlaylistItems({ playlistId })`로 최근 업로드 video ID 수집
   3. `listVideos({ videoIds })`로 공개 영상 메타데이터와 공개 통계 조회
   4. `--include-comments`가 있으면 `listCommentThreads()`로 댓글 요약 수집
-  5. `--include-transcripts`가 있으면 `fetchTranscript()`로 공개 자막 요약 수집
 - 출력:
   - `availableMetrics`: 공개 데이터로 가능한 지표
   - `unavailableMetrics`: CTR, 시청 지속률, 유입경로, 인구통계, 수익, 검색어 유입 등 owner-only Analytics 지표
-  - `channel`, `videos`, `commentsSummary`, `transcriptsSummary`, `warnings`
+  - `channel`, `videos`, `commentsSummary`, `warnings`
 
 Public analysis는 비공개 Analytics 지표를 추정하지 않는다. API상 불가능한 지표는 실패가 아니라 `unavailableMetrics` 계약으로 표현한다.
 

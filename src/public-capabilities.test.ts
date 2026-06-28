@@ -13,6 +13,7 @@ describe('public capabilities', () => {
     expect(unavailable).toContain('demographics');
     expect(unavailable).toContain('revenue');
     expect(unavailable).toContain('searchTerms');
+    expect(unavailable).toContain('transcripts');
     expect(
       capabilities.unavailableMetrics.every(
         (metric) => metric.status === 'unavailable' && metric.reason.length > 0,
@@ -31,6 +32,6 @@ describe('public capabilities', () => {
     expect(available).toContain('videoMetadata');
     expect(available).toContain('videoStatistics');
     expect(available).toContain('comments');
-    expect(available).toContain('transcripts');
+    expect(available).not.toContain('transcripts');
   });
 });

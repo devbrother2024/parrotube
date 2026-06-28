@@ -34,7 +34,6 @@ import { dataSubscriptionsAction } from './commands/data-subscriptions.js';
 import { dataActivitiesAction } from './commands/data-activities.js';
 import { dataCaptionsAction } from './commands/data-captions.js';
 import { dataCaptionsUploadAction } from './commands/data-captions-upload.js';
-import { dataTranscriptAction } from './commands/data-transcript.js';
 import { dataCategoriesAction } from './commands/data-categories.js';
 import { dataI18nAction } from './commands/data-i18n.js';
 import { publicReportAction } from './commands/public-report.js';
@@ -44,8 +43,8 @@ export function createProgram(): Command {
 
   program
     .name('parrotube')
-    .description('YouTube Analytics and public channel analysis CLI for AI agents and humans\n\nCommands marked [no auth] work without authentication.')
-    .version('0.5.0')
+    .description('YouTube Analytics and public channel analysis CLI for AI agents and humans')
+    .version('0.6.0')
     .option('-p, --period <value>', 'Shorthand period: 7d, 28d, 90d, 1y', '28d')
     .option('--start-date <YYYY-MM-DD>', 'Custom start date')
     .option('--end-date <YYYY-MM-DD>', 'Custom end date')
@@ -342,20 +341,6 @@ export function createProgram(): Command {
     });
 
   program
-    .command('data:transcript')
-    .description('Extract transcript (subtitles/captions text) from a video [no auth]')
-    .requiredOption('--video-id <id>', 'YouTube video ID')
-    .option('--lang <code>', 'Language code (e.g. ko, en)')
-    .action(async (cmdOpts) => {
-      const opts = program.opts();
-      await dataTranscriptAction({
-        format: opts.format,
-        videoId: cmdOpts.videoId,
-        lang: cmdOpts.lang,
-      });
-    });
-
-  program
     .command('data:categories')
     .description('Video categories for a region')
     .option('--region-code <code>', 'Region code', 'KR')
@@ -390,8 +375,6 @@ export function createProgram(): Command {
     .option('-m, --max-videos <number>', 'Max recent uploads to analyze', '10')
     .option('--include-comments', 'Fetch public comments for each analyzed video')
     .option('--max-comments-per-video <number>', 'Max public comments per analyzed video', '20')
-    .option('--include-transcripts', 'Fetch public transcripts for each analyzed video')
-    .option('--lang <code>', 'Transcript language code (e.g. ko, en)')
     .action(async (cmdOpts) => {
       const opts = program.opts();
       const auth = await getAuthClient();
@@ -401,8 +384,6 @@ export function createProgram(): Command {
         maxVideos: parseInt(cmdOpts.maxVideos, 10),
         includeComments: cmdOpts.includeComments ?? false,
         maxCommentsPerVideo: parseInt(cmdOpts.maxCommentsPerVideo, 10),
-        includeTranscripts: cmdOpts.includeTranscripts ?? false,
-        lang: cmdOpts.lang,
       });
     });
 

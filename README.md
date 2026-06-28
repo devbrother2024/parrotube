@@ -1,13 +1,12 @@
 # parrotube
 
-YouTube Analytics and public channel analysis CLI for AI agents and humans. Pull owner-authorized Analytics reports, query YouTube Data API resources, or analyze arbitrary public channels from public metadata, public video stats, comments, and transcripts.
+YouTube Analytics and public channel analysis CLI for AI agents and humans. Pull owner-authorized Analytics reports, query YouTube Data API resources, or analyze arbitrary public channels from public metadata, public video stats, and comments.
 
 **Works with:** Claude Code, Cursor, and any agent that can run shell commands.
 
 ## Prerequisites
 
 - **Node.js** >= 18
-- **yt-dlp** — required for `data:transcript` command. [Install guide](https://github.com/yt-dlp/yt-dlp#installation)
 
 ## Installation
 
@@ -41,13 +40,27 @@ npx parrotube auth
 | **Analytics** | overview, demographics, geography, traffic, devices, revenue, sharing, top-videos, time-series, search-terms, video, query, report | Yes |
 | **Public Analysis** | public:report | Yes |
 | **Data API** | data:comments, data:channel, data:videos, data:playlists, data:playlist-items, data:search, data:subscriptions, data:activities, data:captions, data:captions:upload, data:categories, data:i18n | Yes |
-| **No Auth** | data:transcript | **No** |
 
-`public:report` uses OAuth for YouTube Data API quota/access, but it only reports public channel/video/comment data and explicitly marks owner-only Analytics metrics as unavailable. `data:transcript` uses [yt-dlp](https://github.com/yt-dlp/yt-dlp) to fetch subtitles and works without any authentication. All other commands require OAuth2 setup (see [Setup](#setup-one-time)). If you authenticated before `data:captions:upload` existed, run `parrotube auth` again so the token includes caption upload permissions.
+All parrotube data, analytics, and public analysis commands require OAuth2 setup (see [Setup](#setup-one-time)). `public:report` uses OAuth for YouTube Data API quota/access, but it only reports public channel/video/comment data and explicitly marks owner-only Analytics metrics as unavailable. If you authenticated before `data:captions:upload` existed, run `parrotube auth` again so the token includes caption upload permissions.
 
 ## API Boundary
 
 Analytics commands can only read channels you own or are authorized to manage. Metrics such as CTR, audience retention, traffic sources, demographics, revenue, and YouTube Search terms are not available for arbitrary public channels. Public analysis commands do not estimate those private metrics; they return them under `unavailableMetrics` with reasons.
+
+## Transcript Extraction
+
+parrotube does not wrap public subtitle extraction. Use [yt-dlp](https://github.com/yt-dlp/yt-dlp#installation) directly for transcript/subtitle work:
+
+```bash
+# Inspect available subtitle tracks
+yt-dlp --list-subs 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+
+# Download Korean original auto-captions as JSON3
+yt-dlp --write-auto-subs --sub-langs ko-orig --sub-format json3 --skip-download 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+
+# Download manual Korean subtitles when present
+yt-dlp --write-subs --sub-langs ko --sub-format json3 --skip-download 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+```
 
 ## Commands
 
@@ -179,17 +192,15 @@ Because this is a nested composite report, it always emits JSON even if the glob
 ```bash
 parrotube public:report --channel-id UC_x5XG1OV2P6uZZ5FSM9Ttw --max-videos 10
 parrotube public:report --channel-id UC_x5XG1OV2P6uZZ5FSM9Ttw --include-comments --max-comments-per-video 20
-parrotube public:report --channel-id UC_x5XG1OV2P6uZZ5FSM9Ttw --include-transcripts --lang ko
 ```
 
 The JSON output includes:
 
-- `availableMetrics`: public metrics collected from Data API or public subtitles.
-- `unavailableMetrics`: private owner-only Analytics metrics such as `ctr`, `audienceRetention`, `trafficSources`, `demographics`, `revenue`, and `searchTerms`.
+- `availableMetrics`: public metrics collected from Data API.
+- `unavailableMetrics`: private owner-only Analytics metrics such as `ctr`, `audienceRetention`, `trafficSources`, `demographics`, `revenue`, and `searchTerms`, plus transcript extraction that should be handled with `yt-dlp` directly.
 - `channel`: public channel metadata and public counts.
 - `videos`: recent public uploads and public video statistics.
 - `commentsSummary`: included only when `--include-comments` is set.
-- `transcriptsSummary`: included only when `--include-transcripts` is set.
 
 ## YouTube Data API Commands
 
@@ -284,21 +295,6 @@ parrotube data:captions:upload --video-id dQw4w9WgXcQ --file ./captions.srt --la
 
 This command uses YouTube Data API `captions.insert`, which costs 400 quota units per upload and accepts files up to 100MB. Existing OAuth tokens may only have read scopes; run `parrotube auth` again if the command asks for reauthorization.
 
-### data:transcript (no auth required)
-
-Extract transcript (subtitles/captions text) from any public video, including auto-generated captions. **No authentication required** — works without OAuth setup.
-
-```bash
-# JSON output with timestamps
-parrotube data:transcript --video-id dQw4w9WgXcQ
-
-# Specific language
-parrotube data:transcript --video-id dQw4w9WgXcQ --lang ko
-
-# Plain text only (no timestamps)
-parrotube data:transcript --video-id dQw4w9WgXcQ --format text
-```
-
 ### data:categories
 
 Fetch video categories for a region.
@@ -334,8 +330,6 @@ parrotube data:i18n --type languages
 | `--max-videos <number>` | Max recent uploads to analyze | `10` |
 | `--include-comments` | Fetch public comments for analyzed videos | off |
 | `--max-comments-per-video <number>` | Max public comments per analyzed video | `20` |
-| `--include-transcripts` | Fetch public transcripts for analyzed videos | off |
-| `--lang <code>` | Transcript language code | auto |
 
 ## For AI Agents
 
@@ -354,8 +348,9 @@ npx parrotube query --metrics views,estimatedRevenue --dimensions country --sort
 npx parrotube video --video-id VIDEO_ID --period 28d
 npx parrotube data:videos --video-id VIDEO_ID --format json
 npx parrotube data:comments --video-id VIDEO_ID --max 100 --format json
-npx parrotube data:transcript --video-id VIDEO_ID --lang ko --format json
 ```
+
+For transcript/subtitle work, use `yt-dlp` directly as shown in [Transcript Extraction](#transcript-extraction).
 
 ## License
 

@@ -31,8 +31,6 @@ describe('publicReportAction', () => {
       maxVideos: 3,
       includeComments: true,
       maxCommentsPerVideo: 10,
-      includeTranscripts: true,
-      lang: 'ko',
     });
 
     expect(mockBuildPublicChannelReport).toHaveBeenCalledWith(
@@ -41,8 +39,6 @@ describe('publicReportAction', () => {
         maxVideos: 3,
         includeComments: true,
         maxCommentsPerVideo: 10,
-        includeTranscripts: true,
-        lang: 'ko',
       }),
     );
     expect(consoleSpy).toHaveBeenCalled();
@@ -58,7 +54,6 @@ describe('publicReportAction', () => {
       maxVideos: 1,
       includeComments: false,
       maxCommentsPerVideo: 0,
-      includeTranscripts: false,
     });
 
     const printed = consoleSpy.mock.calls[0]?.[0];
