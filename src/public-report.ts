@@ -1,0 +1,309 @@
+import type { OAuth2Client } from 'google-auth-library';
+import {
+  getChannel as getChannelDefault,
+  listCommentThreads as listCommentThreadsDefault,
+  listPlaylistItems as listPlaylistItemsDefault,
+  listVideos as listVideosDefault,
+} from './data-api.js';
+import { getPublicMetricCapabilities, type PublicMetricCapability } from './public-capabilities.js';
+
+type UnknownRecord = Record<string, unknown>;
+
+export interface BuildPublicChannelReportOptions {
+  auth: OAuth2Client;
+  channelId: string;
+  maxVideos?: number;
+  includeComments?: boolean;
+  maxCommentsPerVideo?: number;
+  dependencies?: Partial<PublicReportDependencies>;
+}
+
+export interface PublicReportDependencies {
+  getChannel: typeof getChannelDefault;
+  listPlaylistItems: typeof listPlaylistItemsDefault;
+  listVideos: typeof listVideosDefault;
+  listCommentThreads: typeof listCommentThreadsDefault;
+}
+
+const DEFAULT_DEPENDENCIES: PublicReportDependencies = {
+  getChannel: getChannelDefault,
+  listPlaylistItems: listPlaylistItemsDefault,
+  listVideos: listVideosDefault,
+  listCommentThreads: listCommentThreadsDefault,
+};
+
+export interface PublicStats {
+  viewCount: number | null;
+  subscriberCount?: number | null;
+  videoCount?: number | null;
+  likeCount?: number | null;
+  commentCount?: number | null;
+}
+
+export interface PublicChannelSummary {
+  id: string;
+  title: string;
+  description: string;
+  customUrl?: string;
+  publishedAt?: string;
+  uploadsPlaylistId?: string;
+  statistics: PublicStats;
+}
+
+export interface PublicVideoSummary {
+  id: string;
+  title: string;
+  description: string;
+  publishedAt?: string;
+  channelId?: string;
+  duration?: string;
+  statistics: PublicStats;
+}
+
+export interface PublicCommentSummary {
+  id: string;
+  author: string;
+  text: string;
+  likeCount: number | null;
+  publishedAt?: string;
+  replyCount: number | null;
+}
+
+export interface PublicCommentsVideoSummary {
+  videoId: string;
+  fetched: number;
+  comments: PublicCommentSummary[];
+  error?: string;
+}
+
+export interface PublicChannelReport {
+  kind: 'public-channel-report';
+  channelId: string;
+  generatedAt: string;
+  sources: string[];
+  availableMetrics: PublicMetricCapability[];
+  unavailableMetrics: PublicMetricCapability[];
+  channel: PublicChannelSummary;
+  videos: {
+    requestedMax: number;
+    totalFetched: number;
+    items: PublicVideoSummary[];
+  };
+  commentsSummary: {
+    included: boolean;
+    maxPerVideo: number;
+    totalFetched: number;
+    items: PublicCommentsVideoSummary[];
+  };
+  warnings: string[];
+}
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readPath(value: unknown, path: string[]): unknown {
+  let cursor: unknown = value;
+  for (const key of path) {
+    if (!isRecord(cursor)) return undefined;
+    cursor = cursor[key];
+  }
+  return cursor;
+}
+
+function readString(value: unknown, path: string[]): string | undefined {
+  const result = readPath(value, path);
+  return typeof result === 'string' ? result : undefined;
+}
+
+function readCount(value: unknown, path: string[]): number | null {
+  const result = readPath(value, path);
+  if (typeof result === 'number' && Number.isFinite(result)) return result;
+  if (typeof result !== 'string' || result.trim() === '') return null;
+
+  const parsed = Number(result);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function clampInteger(value: number | undefined, fallback: number, min: number, max: number): number {
+  if (value === undefined || !Number.isFinite(value)) return fallback;
+  return Math.max(min, Math.min(max, Math.trunc(value)));
+}
+
+function mapChannel(raw: unknown): PublicChannelSummary {
+  return {
+    id: readString(raw, ['id']) ?? '',
+    title: readString(raw, ['snippet', 'title']) ?? '',
+    description: readString(raw, ['snippet', 'description']) ?? '',
+    customUrl: readString(raw, ['snippet', 'customUrl']),
+    publishedAt: readString(raw, ['snippet', 'publishedAt']),
+    uploadsPlaylistId: readString(raw, ['contentDetails', 'relatedPlaylists', 'uploads']),
+    statistics: {
+      viewCount: readCount(raw, ['statistics', 'viewCount']),
+      subscriberCount: readCount(raw, ['statistics', 'subscriberCount']),
+      videoCount: readCount(raw, ['statistics', 'videoCount']),
+    },
+  };
+}
+
+function mapVideo(raw: unknown): PublicVideoSummary {
+  return {
+    id: readString(raw, ['id']) ?? '',
+    title: readString(raw, ['snippet', 'title']) ?? '',
+    description: readString(raw, ['snippet', 'description']) ?? '',
+    publishedAt: readString(raw, ['snippet', 'publishedAt']),
+    channelId: readString(raw, ['snippet', 'channelId']),
+    duration: readString(raw, ['contentDetails', 'duration']),
+    statistics: {
+      viewCount: readCount(raw, ['statistics', 'viewCount']),
+      likeCount: readCount(raw, ['statistics', 'likeCount']),
+      commentCount: readCount(raw, ['statistics', 'commentCount']),
+    },
+  };
+}
+
+function readPlaylistVideoId(raw: unknown): string | undefined {
+  return (
+    readString(raw, ['contentDetails', 'videoId']) ??
+    readString(raw, ['snippet', 'resourceId', 'videoId'])
+  );
+}
+
+function mapComment(raw: unknown): PublicCommentSummary {
+  const topLevelComment = readPath(raw, ['snippet', 'topLevelComment']);
+  return {
+    id: readString(raw, ['id']) ?? '',
+    author: readString(topLevelComment, ['snippet', 'authorDisplayName']) ?? '',
+    text: readString(topLevelComment, ['snippet', 'textDisplay']) ?? '',
+    likeCount: readCount(topLevelComment, ['snippet', 'likeCount']),
+    publishedAt: readString(topLevelComment, ['snippet', 'publishedAt']),
+    replyCount: readCount(raw, ['snippet', 'totalReplyCount']),
+  };
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+async function buildCommentsSummary(
+  auth: OAuth2Client,
+  videos: PublicVideoSummary[],
+  maxPerVideo: number,
+  listCommentThreads: PublicReportDependencies['listCommentThreads'],
+): Promise<PublicChannelReport['commentsSummary']> {
+  const items: PublicCommentsVideoSummary[] = [];
+  let totalFetched = 0;
+
+  for (const video of videos) {
+    try {
+      const result = await listCommentThreads({
+        auth,
+        videoId: video.id,
+        maxResults: maxPerVideo,
+        order: 'relevance',
+      });
+      const comments = (result.items ?? []).map(mapComment);
+      totalFetched += comments.length;
+      items.push({
+        videoId: video.id,
+        fetched: comments.length,
+        comments,
+      });
+    } catch (error: unknown) {
+      items.push({
+        videoId: video.id,
+        fetched: 0,
+        comments: [],
+        error: errorMessage(error),
+      });
+    }
+  }
+
+  return {
+    included: true,
+    maxPerVideo,
+    totalFetched,
+    items,
+  };
+}
+
+export async function buildPublicChannelReport(
+  options: BuildPublicChannelReportOptions,
+): Promise<PublicChannelReport> {
+  const maxVideos = clampInteger(options.maxVideos, 10, 1, 50);
+  const maxCommentsPerVideo = clampInteger(options.maxCommentsPerVideo, 20, 1, 100);
+  const warnings: string[] = [];
+  const capabilities = getPublicMetricCapabilities();
+  const dependencies = {
+    ...DEFAULT_DEPENDENCIES,
+    ...options.dependencies,
+  };
+
+  const channelResult = await dependencies.getChannel({
+    auth: options.auth,
+    channelId: options.channelId,
+  });
+  const rawChannel = channelResult.items[0];
+  if (!rawChannel) {
+    throw new Error(`Public channel not found: ${options.channelId}`);
+  }
+
+  const channel = mapChannel(rawChannel);
+  if (!channel.uploadsPlaylistId) {
+    warnings.push('Channel uploads playlist is not available from public metadata.');
+  }
+
+  const playlistItems = channel.uploadsPlaylistId
+    ? await dependencies.listPlaylistItems({
+        auth: options.auth,
+        playlistId: channel.uploadsPlaylistId,
+        maxResults: maxVideos,
+      })
+    : { items: [] };
+
+  const videoIds = playlistItems.items
+    .map(readPlaylistVideoId)
+    .filter((videoId): videoId is string => Boolean(videoId))
+    .slice(0, maxVideos);
+
+  const videosResult = videoIds.length
+    ? await dependencies.listVideos({ auth: options.auth, videoIds })
+    : { items: [] };
+  const videos = videosResult.items.map(mapVideo).slice(0, maxVideos);
+
+  const commentsSummary = options.includeComments
+    ? await buildCommentsSummary(
+        options.auth,
+        videos,
+        maxCommentsPerVideo,
+        dependencies.listCommentThreads,
+      )
+    : {
+        included: false,
+        maxPerVideo: maxCommentsPerVideo,
+        totalFetched: 0,
+        items: [],
+      };
+
+  return {
+    kind: 'public-channel-report',
+    channelId: options.channelId,
+    generatedAt: new Date().toISOString(),
+    sources: [
+      'YouTube Data API channels.list',
+      'YouTube Data API playlistItems.list',
+      'YouTube Data API videos.list',
+      'YouTube Data API commentThreads.list (optional)',
+    ],
+    availableMetrics: capabilities.availableMetrics,
+    unavailableMetrics: capabilities.unavailableMetrics,
+    channel,
+    videos: {
+      requestedMax: maxVideos,
+      totalFetched: videos.length,
+      items: videos,
+    },
+    commentsSummary,
+    warnings,
+  };
+}

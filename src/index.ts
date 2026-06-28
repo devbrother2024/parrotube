@@ -36,6 +36,7 @@ import { dataCaptionsAction } from './commands/data-captions.js';
 import { dataCaptionsUploadAction } from './commands/data-captions-upload.js';
 import { dataCategoriesAction } from './commands/data-categories.js';
 import { dataI18nAction } from './commands/data-i18n.js';
+import { publicReportAction } from './commands/public-report.js';
 import type { WritableLike } from './welcome-banner.js';
 
 export interface RunCliOptions {
@@ -48,8 +49,8 @@ export function createProgram(): Command {
 
   program
     .name('parrotube')
-    .description('YouTube Analytics CLI for AI agents and humans')
-    .version('0.6.0')
+    .description('YouTube Analytics and public channel analysis CLI for AI agents and humans')
+    .version('0.7.0')
     .option('-p, --period <value>', 'Shorthand period: 7d, 28d, 90d, 1y', '28d')
     .option('--start-date <YYYY-MM-DD>', 'Custom start date')
     .option('--end-date <YYYY-MM-DD>', 'Custom end date')
@@ -368,6 +369,27 @@ export function createProgram(): Command {
       await dataI18nAction(auth, {
         format: opts.format,
         type: cmdOpts.type,
+      });
+    });
+
+  // ---------- Public Channel Analysis Commands ----------
+
+  program
+    .command('public:report')
+    .description('Public channel analysis report with explicit unavailable owner-only metrics')
+    .requiredOption('--channel-id <id>', 'YouTube channel ID')
+    .option('-m, --max-videos <number>', 'Max recent uploads to analyze', '10')
+    .option('--include-comments', 'Fetch public comments for each analyzed video')
+    .option('--max-comments-per-video <number>', 'Max public comments per analyzed video', '20')
+    .action(async (cmdOpts) => {
+      const opts = program.opts();
+      const auth = await getAuthClient();
+      await publicReportAction(auth, {
+        format: opts.format,
+        channelId: cmdOpts.channelId,
+        maxVideos: parseInt(cmdOpts.maxVideos, 10),
+        includeComments: cmdOpts.includeComments ?? false,
+        maxCommentsPerVideo: parseInt(cmdOpts.maxCommentsPerVideo, 10),
       });
     });
 
