@@ -6,14 +6,6 @@ mock.module('googleapis', () => ({
     youtubeAnalytics: () => ({ reports: { query: mock(() => Promise.resolve({ data: {} })) } }),
   },
 }));
-mock.module('./auth', () => ({
-  authenticate: mock(() => Promise.resolve()),
-  getAuthClient: mock(() => Promise.resolve({})),
-  SCOPES: [],
-  loadClientSecret: mock(),
-  loadToken: mock(),
-  saveToken: mock(),
-}));
 
 describe('CLI program', () => {
   test('createProgram이 Commander 프로그램을 반환', async () => {
