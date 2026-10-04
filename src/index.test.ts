@@ -55,12 +55,39 @@ describe('CLI program', () => {
     expect(help).toContain('--format');
   });
 
-  test('서브커맨드 27개 등록 (analytics + data api + public)', async () => {
+  test('CLI 버전은 package.json 버전과 같다', async () => {
+    const { createProgram } = await import('./index');
+    const pkg = await import('../package.json');
+
+    expect(createProgram().version()).toBe(pkg.version);
+  });
+
+  test('reporting 커맨드 4개 등록, download는 --out 필수와 --job-id 옵션을 가진다', async () => {
     const { createProgram } = await import('./index');
     const program = createProgram();
 
     const commandNames = program.commands.map((c) => c.name());
-    expect(commandNames).toHaveLength(27);
+    expect(commandNames).toContain('reporting:types');
+    expect(commandNames).toContain('reporting:jobs');
+    expect(commandNames).toContain('reporting:create-job');
+    expect(commandNames).toContain('reporting:download');
+
+    const download = program.commands.find((c) => c.name() === 'reporting:download');
+    const downloadHelp = download?.helpInformation() ?? '';
+    expect(downloadHelp).toContain('--out <dir>');
+    expect(downloadHelp).toContain('--job-id <id...>');
+
+    const createJobHelp =
+      program.commands.find((c) => c.name() === 'reporting:create-job')?.helpInformation() ?? '';
+    expect(createJobHelp).toContain('--report-type <id>');
+  });
+
+  test('서브커맨드 31개 등록 (analytics + data api + public + reporting)', async () => {
+    const { createProgram } = await import('./index');
+    const program = createProgram();
+
+    const commandNames = program.commands.map((c) => c.name());
+    expect(commandNames).toHaveLength(31);
     expect(commandNames).toContain('auth');
     expect(commandNames).toContain('overview');
     expect(commandNames).toContain('demographics');

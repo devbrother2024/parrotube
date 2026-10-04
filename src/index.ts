@@ -37,6 +37,10 @@ import { dataCaptionsUploadAction } from './commands/data-captions-upload.js';
 import { dataCategoriesAction } from './commands/data-categories.js';
 import { dataI18nAction } from './commands/data-i18n.js';
 import { publicReportAction } from './commands/public-report.js';
+import { reportingTypesAction } from './commands/reporting-types.js';
+import { reportingJobsAction } from './commands/reporting-jobs.js';
+import { reportingCreateJobAction } from './commands/reporting-create-job.js';
+import { reportingDownloadAction } from './commands/reporting-download.js';
 import type { WritableLike } from './welcome-banner.js';
 
 export interface RunCliOptions {
@@ -50,7 +54,7 @@ export function createProgram(): Command {
   program
     .name('parrotube')
     .description('YouTube Analytics and public channel analysis CLI for AI agents and humans')
-    .version('0.7.0')
+    .version('0.8.0')
     .option('-p, --period <value>', 'Shorthand period: 7d, 28d, 90d, 1y', '28d')
     .option('--start-date <YYYY-MM-DD>', 'Custom start date')
     .option('--end-date <YYYY-MM-DD>', 'Custom end date')
@@ -390,6 +394,56 @@ export function createProgram(): Command {
         maxVideos: parseInt(cmdOpts.maxVideos, 10),
         includeComments: cmdOpts.includeComments ?? false,
         maxCommentsPerVideo: parseInt(cmdOpts.maxCommentsPerVideo, 10),
+      });
+    });
+
+  // ---------- YouTube Reporting API Commands ----------
+
+  program
+    .command('reporting:types')
+    .description('List YouTube Reporting API report types (daily bulk CSV reports)')
+    .action(async () => {
+      const opts = program.opts();
+      const auth = await getAuthClient();
+      await reportingTypesAction(auth, { format: opts.format });
+    });
+
+  program
+    .command('reporting:jobs')
+    .description('List YouTube Reporting API jobs for the authenticated channel')
+    .action(async () => {
+      const opts = program.opts();
+      const auth = await getAuthClient();
+      await reportingJobsAction(auth, { format: opts.format });
+    });
+
+  program
+    .command('reporting:create-job')
+    .description('Create a daily Reporting API job (returns the existing job if one already exists)')
+    .requiredOption('--report-type <id>', 'Report type ID (e.g. channel_reach_basic_a1)')
+    .option('--name <name>', 'Job name (default: report type ID)')
+    .action(async (cmdOpts) => {
+      const opts = program.opts();
+      const auth = await getAuthClient();
+      await reportingCreateJobAction(auth, {
+        format: opts.format,
+        reportType: cmdOpts.reportType,
+        name: cmdOpts.name,
+      });
+    });
+
+  program
+    .command('reporting:download')
+    .description('Download new Reporting API CSV reports into a directory with a manifest')
+    .requiredOption('--out <dir>', 'Output directory for CSV files and manifest.jsonl')
+    .option('--job-id <id...>', 'Only download these job IDs (default: all jobs)')
+    .action(async (cmdOpts) => {
+      const opts = program.opts();
+      const auth = await getAuthClient();
+      await reportingDownloadAction(auth, {
+        format: opts.format,
+        out: cmdOpts.out,
+        jobIds: cmdOpts.jobId,
       });
     });
 
