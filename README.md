@@ -29,7 +29,7 @@ npx parrotube --help
 ## Setup (one-time)
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a project and enable **YouTube Analytics API** and **YouTube Data API v3**
+2. Create a project and enable **YouTube Analytics API** and **YouTube Data API v3** (also enable **YouTube Reporting API** for `reporting:*` commands)
 3. Create an **OAuth 2.0 Client ID** (Desktop App type)
 4. Download `client_secret.json`
 
@@ -46,12 +46,15 @@ npx parrotube auth
 | **Analytics** | overview, demographics, geography, traffic, devices, revenue, sharing, top-videos, time-series, search-terms, video, query, report | Yes |
 | **Public Analysis** | public:report | Yes |
 | **Data API** | data:comments, data:channel, data:videos, data:playlists, data:playlist-items, data:search, data:subscriptions, data:activities, data:captions, data:captions:upload, data:categories, data:i18n | Yes |
+| **Reporting API** | reporting:types, reporting:jobs, reporting:create-job, reporting:download | Yes |
 
-All parrotube data, analytics, and public analysis commands require OAuth2 setup (see [Setup](#setup-one-time)). `public:report` uses OAuth for YouTube Data API quota/access, but it only reports public channel/video/comment data and explicitly marks owner-only Analytics metrics as unavailable. If you authenticated before `data:captions:upload` existed, run `parrotube auth` again so the token includes caption upload permissions.
+All parrotube data, analytics, public analysis, and reporting commands require OAuth2 setup (see [Setup](#setup-one-time)). `public:report` uses OAuth for YouTube Data API quota/access, but it only reports public channel/video/comment data and explicitly marks owner-only Analytics metrics as unavailable. If you authenticated before `data:captions:upload` existed, run `parrotube auth` again so the token includes caption upload permissions.
 
 ## API Boundary
 
 Analytics commands can only read channels you own or are authorized to manage. Metrics such as CTR, audience retention, traffic sources, demographics, revenue, and YouTube Search terms are not available for arbitrary public channels. Public analysis commands do not estimate those private metrics; they return them under `unavailableMetrics` with reasons.
+
+Thumbnail impressions and impressions click-through rate are not exposed by the Analytics API at all. For channels you own, they are delivered as daily CSV files by Reporting API reach reports (`channel_reach_basic_a1`, `channel_reach_combined_a1`), which the `reporting:*` commands create and download.
 
 ## Transcript Extraction
 
@@ -317,6 +320,48 @@ List supported i18n regions or languages.
 ```bash
 parrotube data:i18n --type regions
 parrotube data:i18n --type languages
+```
+
+## YouTube Reporting API Commands
+
+The Reporting API generates daily bulk CSV reports for jobs you create on your own channel. It uses the same OAuth token as the Analytics commands, but the **YouTube Reporting API** must be enabled in your Google Cloud project.
+
+- A new job backfills reports for the 30 days before it was created. The first reports usually appear within 48 hours.
+- Backfill reports are kept for 30 days after they are generated and regular reports for 60 days, so download them on a schedule.
+- When YouTube regenerates a day's report, it gets a new report ID. Use the entry with the latest `createTime` for each `reportTypeId` and `startTime`.
+
+### reporting:types
+
+List the report types available to the authenticated channel.
+
+```bash
+parrotube reporting:types --format table
+```
+
+### reporting:jobs
+
+List Reporting API jobs.
+
+```bash
+parrotube reporting:jobs --format table
+```
+
+### reporting:create-job
+
+Create a daily reporting job. If a job for the report type already exists, it is returned with `"created": false` and nothing new is created.
+
+```bash
+parrotube reporting:create-job --report-type channel_reach_basic_a1
+parrotube reporting:create-job --report-type channel_reach_combined_a1 --name "reach combined"
+```
+
+### reporting:download
+
+Download reports that are not in the output directory yet. Each report is saved as `<out>/<reportTypeId>/<YYYYMMDD>-<reportId>.csv` and recorded as one line in `<out>/manifest.jsonl`. Stdout prints a JSON summary per job (`reportsAvailable`, `downloaded`, `skipped`, `latestStartTime`, `latestCreateTime`, `newFiles`). CSV columns are saved as delivered, without parsing.
+
+```bash
+parrotube reporting:download --out ~/data/youtube-reporting
+parrotube reporting:download --out ./reports --job-id JOB_ID
 ```
 
 ## Common Options
