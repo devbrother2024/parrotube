@@ -3,13 +3,13 @@
 ## Project Context & Operations
 
 ### Overview
-YouTube Analytics API와 YouTube Data API v3를 래핑하는 CLI 도구. AI 에이전트와 사람 모두가 채널 통계(인구통계, 지역, 트래픽, 기기, 인기영상, 시계열, 수익, 검색어, 공유, 개별영상)를 JSON/Table로 조회하고, 댓글/채널/영상/재생목록 등 Data API 리소스도 동일한 CLI에서 조회한다. 범용 query 커맨드로 임의 API 쿼리도 지원한다.
+YouTube Analytics API와 YouTube Data API v3를 래핑하는 CLI 도구. AI 에이전트와 사람 모두가 채널 통계(인구통계, 지역, 트래픽, 기기, 인기영상, 시계열, 수익, 검색어, 공유, 개별영상)를 JSON/Table로 조회하고, 댓글/채널/영상/재생목록 등 Data API 리소스도 동일한 CLI에서 조회한다. 범용 query 커맨드로 임의 API 쿼리도 지원한다. 썸네일 노출수·노출 클릭률처럼 Analytics API에 없는 지표는 YouTube Reporting API job의 일일 CSV 리포트로 내려받는다.
 
 ### Tech Stack
 - Runtime: Bun (개발/테스트) / Node.js >= 18 (배포)
 - Language: TypeScript 6.x (ESM, `"type": "module"`, strict mode)
 - CLI: Commander.js 13.x
-- API: Google YouTube Analytics API v2, YouTube Data API v3 (`googleapis` 144.x)
+- API: Google YouTube Analytics API v2, YouTube Data API v3, YouTube Reporting API v1 (`googleapis` 144.x)
 - Output: cli-table3 (table), JSON (default stdout)
 - Test: Bun Test (built-in, `bun:test`)
 - Build: `tsc` -> `dist/`

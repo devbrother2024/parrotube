@@ -2,17 +2,19 @@
 
 ## Module Context
 
-parrotube CLI는 세 가지 command family를 제공한다.
+parrotube CLI는 네 가지 command family를 제공한다.
 
 - Analytics commands: 소유/권한 채널의 YouTube Analytics API 지표 조회.
 - Data API commands: YouTube Data API v3 원시 리소스 조회.
 - Public analysis commands: 임의 공개 채널을 공개 메타데이터/영상 통계/댓글로 분석하고, 불가능한 owner-only 지표를 명시.
+- Reporting commands: 소유 채널의 YouTube Reporting API job 관리와 일일 CSV 리포트 다운로드.
 
 의존성 흐름:
 
 - `commands/*.ts` -> `api.ts` -> `googleapis` (Analytics)
 - `commands/data-*.ts` -> `data-api.ts` -> `googleapis` (Data API)
 - `commands/public-*.ts` -> `public-report.ts` -> `data-api.ts`
+- `commands/reporting-*.ts` -> `reporting-api.ts` -> `googleapis` (Reporting API)
 - `commands/*.ts` -> `utils/formatter.ts`
 
 ## Analytics Subcommand Spec
@@ -105,6 +107,29 @@ parrotube CLI는 세 가지 command family를 제공한다.
 
 Public analysis는 비공개 Analytics 지표를 추정하지 않는다. API상 불가능한 지표는 실패가 아니라 `unavailableMetrics` 계약으로 표현한다.
 
+## Reporting Subcommand Spec
+
+### reporting:types
+- API: `reportTypes.list` (모든 페이지)
+- 출력: `{ items }`
+
+### reporting:jobs
+- API: `jobs.list` (모든 페이지)
+- 출력: `{ items }`
+
+### reporting:create-job
+- 입력: `--report-type` 필수, `--name` 선택(기본값은 report type ID)
+- 같은 `reportTypeId`의 job이 있으면 만들지 않고 `{ created: false, items: [기존 job] }`
+- 없으면 `jobs.create` 후 `{ created: true, items: [새 job] }`
+
+### reporting:download
+- 입력: `--out` 필수, `--job-id` 선택(여러 개, 기본값은 전체 job)
+- API: `jobs.list` -> job별 `jobs.reports.list` -> 새 리포트만 `downloadUrl`로 인증 GET
+- 저장: `<out>/<reportTypeId>/<YYYYMMDD>-<reportId>.csv`(`.part`로 쓴 뒤 rename), `<out>/manifest.jsonl`에 리포트당 한 줄
+- 파일이 이미 있으면 다시 받지 않는다. 파일만 있고 manifest에 없으면 manifest만 보완한다.
+- 출력: `{ outDir, downloaded, skipped, items }`, `items`는 job별 `reportsAvailable`·`downloaded`·`skipped`·`latestStartTime`·`latestCreateTime`·`newFiles`
+- CSV 컬럼은 해석하지 않는다. 같은 날짜를 다시 생성한 리포트는 새 report ID로 따로 저장되므로, 소비자가 `reportTypeId`·`startTime`별로 `createTime`이 가장 늦은 항목을 고른다.
+
 ## Implementation Pattern
 
 Analytics 커맨드 파일은 동일한 구조를 따른다:
@@ -178,6 +203,8 @@ describe('xxxAction', () => {
 });
 ```
 
+Bun은 `mock.module()` 결과를 뒤에 실행되는 테스트 파일에도 남긴다. 같은 모듈을 여러 테스트 파일에서 mock하면 각 파일이 그 모듈의 export를 전부 mock한다. 일부만 mock한 파일이 먼저 실행되면 다른 파일의 import가 `Export named ... not found`로 실패한다. 실제 모듈을 검사하는 `src/*-api.test.ts`는 기본 `bun test` 탐색 순서상 `src/commands/`보다 먼저 실행되어 통과하므로, 파일 목록을 직접 지정해 커맨드 테스트를 먼저 돌리면 실패할 수 있다.
+
 ## Naming Convention
 - 파일명: kebab-case.ts (예: top-videos.ts)
 - export 함수명: camelCase + `Action` 접미사 (예: `topVideosAction`)
@@ -195,5 +222,6 @@ describe('xxxAction', () => {
 ### Don'ts
 - 커맨드 파일에서 `getAuthClient()`를 직접 호출하지 않는다 (auth는 상위에서 주입)
 - Analytics 커맨드에서 `queryReport` 외의 방법으로 API를 직접 호출하지 않는다
+- Reporting 커맨드에서 `reporting-api.ts` 외의 방법으로 Reporting API를 직접 호출하지 않는다
 - public 명령에서 CTR, 시청 지속률, 유입경로, 수익 등 owner-only 지표를 계산/추정하지 않는다
 - 커맨드 파일에서 `process.exit()`를 호출하지 않는다 (에러는 throw로 전파)
